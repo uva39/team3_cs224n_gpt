@@ -26,8 +26,10 @@ class AdamW(Optimizer):
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, correct_bias=correct_bias)
         super().__init__(params, defaults)
 
+
     def step(self, closure: Callable = None):
         loss = None
+
         if closure is not None:
             loss = closure()
 
@@ -41,11 +43,40 @@ class AdamW(Optimizer):
 
                 # State should be stored in this dictionary.
                 state = self.state[p]
-
+                if not state:
+                    state["step"] = 0
+                    state["exp_avg"] = torch.zeros_like(p.data)
+                    state["exp_avg_sq"] = torch.zeros_like(p.data)
+                
+                state["step"] += 1
+                
+                t = state['step']
+                m = state['exp_avg']
+                v = state['exp_avg_sq']
+                
                 # Access hyperparameters from the `group` dictionary.
                 alpha = group["lr"]
+                beta_1, beta_2 = group["betas"]
+                correct_bias = group["correct_bias"]
+                eps = group["eps"]
+                weight_decay = group["weight_decay"]
 
-
+                m = beta_1 * m + (1-beta_1) * grad
+                v = beta_2 * v + (1-beta_2) * grad * grad
+                
+                step_size = alpha
+                if correct_bias:
+                    bias_correction1 = 1 - beta_1 ** t
+                    bias_correction2 = 1 - beta_2 ** t
+                    step_size = alpha * math.sqrt(bias_correction2) / bias_correction1
+                    
+                p.data -= step_size * m / (torch.sqrt(v) + eps)
+                if weight_decay > 0:
+                    p.data -= alpha * weight_decay * p.data
+                
+                state['exp_avg'] = m
+                state['exp_avg_sq'] = v
+                
                 ### TODO: Complete the implementation of AdamW here, reading and saving
                 ###       your state in the `state` dictionary above.
                 ###       The hyperparameters can be read from the `group` dictionary
@@ -61,7 +92,6 @@ class AdamW(Optimizer):
                 ###
                 ###       Refer to the default project handout for more details.
                 ### YOUR CODE HERE
-                raise NotImplementedError
-
+                ## raise NotImplementedError
 
         return loss
