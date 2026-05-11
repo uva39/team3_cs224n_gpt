@@ -29,8 +29,12 @@ class GPT2Layer(nn.Module):
         before it is added to the sub-layer input. WE DO NOT APPLY THE LAYER NORM
         IN THIS FUNCTION.
     """
-    ### YOUR CODE HERE
-    raise NotImplementedError
+    # 서브레이어의 출력을 선형 변환해서 hidden size 차원으로 맞춘다.
+    transformed_output = dense_layer(output)
+    # 선형 변환된 출력에 dropout을 적용해 과적합을 줄인다.
+    transformed_output = dropout(transformed_output)
+    # 원래 입력과 변환된 출력을 더해 residual connection을 만든다.
+    return input + transformed_output
 
 
   def forward(self, hidden_states, attention_mask):
@@ -41,7 +45,22 @@ class GPT2Layer(nn.Module):
            - Apply dropout, residual connection, and layer normalization according to the plot in the assignment. (Use self.add)
            - A feed-forward layer that applies transformations to further refine the hidden states.
     """
+    # attention 전에 layer normalization을 적용하는 GPT-2의 pre-LN 구조를 따른다.
+    attention_input = self.attention_layer_norm(hidden_states)
+    # 정규화된 입력으로 causal self-attention을 계산한다.
+    attention_output = self.self_attention(attention_input, attention_mask)
+    # attention 출력에 projection, dropout, residual add를 적용한다.
+    hidden_states = self.add(hidden_states, attention_output, self.attention_dense, self.attention_dropout)
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
+    # feed-forward 네트워크 전에 다시 layer normalization을 적용한다.
+    layer_output = self.out_layer_norm(hidden_states)
+    # 첫 번째 선형층으로 hidden state를 intermediate size로 확장한다.
+    intermediate_output = self.interm_dense(layer_output)
+    # GELU 활성화 함수를 적용해 비선형성을 추가한다.
+    intermediate_output = self.interm_af(intermediate_output)
+    # feed-forward 출력에 projection, dropout, residual add를 적용한다.
+    hidden_states = self.add(hidden_states, intermediate_output, self.out_dense, self.out_dropout)
+
+    # 한 개의 GPT-2 layer를 통과한 최종 hidden states를 반환한다.
+    return hidden_states
 
