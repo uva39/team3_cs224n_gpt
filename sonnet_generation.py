@@ -61,8 +61,16 @@ class SonnetGPT(nn.Module):
     not just the distribution over next tokens for the last token!
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    #raise NotImplementedError
+    outputs = self.gpt(input_ids=input_ids, attention_mask=attention_mask)
 
+    sequence_output = outputs['last_hidden_state']   # [B, T, H]
+
+    # GPT-2의 token embedding weight를 LM head처럼 사용
+    logits = F.linear(sequence_output, self.gpt.embed.word_embedding.weight)  # [B, T, V]
+
+    return logits
+    
 
   def get_device(self):
     for param in self.gpt.parameters():
