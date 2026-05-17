@@ -61,8 +61,14 @@ class SonnetGPT(nn.Module):
     not just the distribution over next tokens for the last token!
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
-
+    #raise NotImplementedError
+    x = self.gpt(input_ids, attention_mask)['last_hidden_state']
+    
+    batch_idx = torch.arange(x.size(0), device=x.device)
+    x = x[batch_idx, :, :]
+    
+    return x
+    
 
   def get_device(self):
     for param in self.gpt.parameters():
