@@ -62,12 +62,14 @@ class SonnetGPT(nn.Module):
     """
     ### YOUR CODE HERE
     #raise NotImplementedError
-    x = self.gpt(input_ids, attention_mask)['last_hidden_state']
-    
-    batch_idx = torch.arange(x.size(0), device=x.device)
-    x = x[batch_idx, :, :]
-    
-    return x
+    outputs = self.gpt(input_ids=input_ids, attention_mask=attention_mask)
+
+    sequence_output = outputs['last_hidden_state']   # [B, T, H]
+
+    # GPT-2의 token embedding weight를 LM head처럼 사용
+    logits = F.linear(sequence_output, self.gpt.embed.word_embedding.weight)  # [B, T, V]
+
+    return logits
     
 
   def get_device(self):
