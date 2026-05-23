@@ -29,6 +29,7 @@ ENV/
 # Logs and local outputs
 *.log
 out/
+data/json/
 
 # Editor and OS files
 .idea/
