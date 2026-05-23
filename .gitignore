@@ -1,8 +1,37 @@
 *pretest
 *~
-*.pyc
+
+# Python caches and build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Virtual environments and local Python setup
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Model checkpoints and serialized artifacts
 *.pt
 *.pkl
-.idea/
+*.ckpt
+*.bin
+
+# Logs and local outputs
+*.log
 out/
+
+# Editor and OS files
+.idea/
 .vscode/
+.DS_Store
+Thumbs.db
