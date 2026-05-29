@@ -1,0 +1,15 @@
+.git
+__pycache__
+.ipynb_checkpoints
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+data/json
+datasets
+output
+outputs
+runs
+wandb
+.cache
