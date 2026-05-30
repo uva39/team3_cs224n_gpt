@@ -4,6 +4,7 @@
 Trains and evaluates GPT2SentimentClassifier on SST and CFIMDB
 '''
 
+import os
 import random, numpy as np, argparse
 from types import SimpleNamespace
 import csv
@@ -17,6 +18,8 @@ from sklearn.metrics import f1_score, accuracy_score
 from models.gpt2 import GPT2Model
 from optimizer import AdamW
 from tqdm import tqdm
+
+from config import SaveInfo
 
 TQDM_DISABLE = False
 
@@ -249,8 +252,40 @@ def save_model(model, optimizer, args, config, filepath):
   torch.save(save_info, filepath)
   print(f"save the model to {filepath}")
 
+def init_metrics_csv(filepath):
+  dirpath = os.path.dirname(filepath)
+  if dirpath:
+    os.makedirs(dirpath, exist_ok=True)
 
-def train(args):
+  fieldnames = [
+    'dataset',
+    'epoch',
+    'seed',
+    'fine_tune_mode',
+    'lr',
+    'batch_size',
+    'hidden_dropout_prob',
+    'train_loss',
+    'train_acc',
+    'train_f1',
+    'dev_acc',
+    'dev_f1',
+    'best_dev_acc',
+    'is_best',
+    'checkpoint_path'
+  ]
+
+  with open(filepath, 'w', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer.writeheader()
+
+
+def append_metrics_csv(filepath, row):
+  with open(filepath, 'a', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=row.keys())
+    writer.writerow(row)
+    
+def train(args, save_info = None):
   device = torch.device('cuda') if args.use_gpu else torch.device('cpu')
   # Create the data and its corresponding datasets and dataloader.
   train_data, num_labels = load_data(args.train, 'train')
@@ -279,6 +314,10 @@ def train(args):
   lr = args.lr
   optimizer = AdamW(model.parameters(), lr=lr)
   best_dev_acc = 0
+  
+  metrics_out = getattr(args, "metrics_out", None)
+  if metrics_out is not None:
+    init_metrics_csv(metrics_out)
 
   # Run for the specified number of epochs.
   for epoch in range(args.epochs):
@@ -308,11 +347,54 @@ def train(args):
     train_acc, train_f1, *_ = model_eval(train_dataloader, model, device)
     dev_acc, dev_f1, *_ = model_eval(dev_dataloader, model, device)
 
-    if dev_acc > best_dev_acc:
+    is_best = dev_acc > best_dev_acc
+    
+    if metrics_out is not None:
+      append_metrics_csv(metrics_out, {
+        'dataset': getattr(args, "dataset", ""),
+        'epoch': epoch,
+        'seed': getattr(args, "seed", ""),
+        'fine_tune_mode': args.fine_tune_mode,
+        'lr': args.lr,
+        'batch_size': args.batch_size,
+        'hidden_dropout_prob': args.hidden_dropout_prob,
+        'train_loss': train_loss,
+        'train_acc': train_acc,
+        'train_f1': train_f1,
+        'dev_acc': dev_acc,
+        'dev_f1': dev_f1,
+        'best_dev_acc': best_dev_acc,
+        'is_best': is_best,
+        'checkpoint_path': args.filepath
+      })
+      
+    if is_best:
       best_dev_acc = dev_acc
+      
+      if save_info is not None:
+        save_info.update(
+            best_epoch=epoch,
+            best_dev_acc=float(dev_acc),
+            best_dev_f1=float(dev_f1)
+        )
+        
       save_model(model, optimizer, args, config, args.filepath)
-
+  
     print(f"Epoch {epoch}: train loss :: {train_loss :.3f}, train acc :: {train_acc :.3f}, dev acc :: {dev_acc :.3f}")
+  
+  train_acc, train_f1, *_ = model_eval(train_dataloader, model, device)
+  dev_acc, dev_f1, *_ = model_eval(dev_dataloader, model, device)
+  
+  if save_info is not None:
+    save_info.update(
+      final_train_acc=float(train_acc),
+      final_train_f1=float(train_f1),
+      final_dev_acc=float(dev_acc),
+      final_dev_f1=float(dev_f1),
+    )
+    
+  if hasattr(args, "final_filepath"):
+    save_model(model, optimizer, args, config, args.final_filepath)
 
 
 def test(args):
@@ -367,17 +449,22 @@ def get_args():
   parser.add_argument("--lr", type=float, help="learning rate, default lr for 'pretrain': 1e-3, 'finetune': 1e-5",
                       default=1e-3)
 
+  parser.add_argument("--sst-filepath", default='sst-classifier.pt')
+  parser.add_argument("--cfimdb-filepath", default='cfimdb-classifier.pt')
+  parser.add_argument("--predictions-prefix", default='')
+  
   args = parser.parse_args()
   return args
-
+  
 
 if __name__ == "__main__":
   args = get_args()
   seed_everything(args.seed)
-
+  
   print('Training Sentiment Classifier on SST...')
   config = SimpleNamespace(
-    filepath='sst-classifier.pt',
+#    filepath='sst-classifier.pt',
+    filepath=args.sst_filepath,
     lr=args.lr,
     use_gpu=args.use_gpu,
     epochs=args.epochs,
@@ -387,8 +474,8 @@ if __name__ == "__main__":
     dev='data/ids-sst-dev.csv',
     test='data/ids-sst-test-student.csv',
     fine_tune_mode=args.fine_tune_mode,
-    dev_out='predictions/' + args.fine_tune_mode + '-sst-dev-out.csv',
-    test_out='predictions/' + args.fine_tune_mode + '-sst-test-out.csv'
+    dev_out='predictions/' + args.predictions_prefix + args.fine_tune_mode + '-sst-dev-out.csv',
+    test_out='predictions/' + args.predictions_prefix + args.fine_tune_mode + '-sst-test-out.csv'
   )
 
   train(config)
@@ -396,9 +483,12 @@ if __name__ == "__main__":
   print('Evaluating on SST...')
   test(config)
 
+###############################################################
+
   print('Training Sentiment Classifier on cfimdb...')
   config = SimpleNamespace(
-    filepath='cfimdb-classifier.pt',
+ #   filepath='cfimdb-classifier.pt',
+    filepath=args.cfimdb_filepath,
     lr=args.lr,
     use_gpu=args.use_gpu,
     epochs=args.epochs,
@@ -408,10 +498,10 @@ if __name__ == "__main__":
     dev='data/ids-cfimdb-dev.csv',
     test='data/ids-cfimdb-test-student.csv',
     fine_tune_mode=args.fine_tune_mode,
-    dev_out='predictions/' + args.fine_tune_mode + '-cfimdb-dev-out.csv',
-    test_out='predictions/' + args.fine_tune_mode + '-cfimdb-test-out.csv'
+    dev_out='predictions/' + args.predictions_prefix + args.fine_tune_mode + '-cfimdb-dev-out.csv',
+    test_out='predictions/' + args.predictions_prefix + args.fine_tune_mode + '-cfimdb-test-out.csv'
   )
-
+  
   train(config)
 
   print('Evaluating on cfimdb...')
