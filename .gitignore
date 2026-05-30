@@ -36,3 +36,6 @@ data/json/
 .vscode/
 .DS_Store
 Thumbs.db
+
+
+requirements.txt
