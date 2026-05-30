@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/bash
+set -e
 
-conda env create -f env.yml
-conda activate cs224n_dfp
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
