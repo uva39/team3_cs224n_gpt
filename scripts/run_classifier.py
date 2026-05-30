@@ -81,11 +81,17 @@ def make_config(args: argparse.Namespace, is_sst: bool) -> SimpleNamespace:
 
 
 def train_test(config, info):
+  print('\n---------------------------------------------------')
   print(f'Training Sentiment Classifier on {info.dataset}...')
+  print('---------------------------------------------------')
   train(config, info)
 
+  print('\n---------------------------------------------------')
   print(f'Evaluating on {info.dataset}...')
+  print('---------------------------------------------------')
   test(config)
+  
+  print('\ntraining and test process is end\n')
   
   
 def get_args():

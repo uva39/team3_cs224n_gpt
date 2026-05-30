@@ -41,3 +41,4 @@ Thumbs.db
 # requirements.txt
 data/json
 predictions/*.csv
+log.txt

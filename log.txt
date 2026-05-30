@@ -1,0 +1,22 @@
+Training Sentiment Classifier on SST...
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to sst-classifier.pt
+Epoch 0: train loss :: 1.404, train acc :: 0.518, dev acc :: 0.475
+Evaluating on SST...
+load model from sst-classifier.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.475
+Training Sentiment Classifier on cfimdb...
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to cfimdb-classifier.pt
+Epoch 0: train loss :: 0.520, train acc :: 0.964, dev acc :: 0.939
+Evaluating on cfimdb...
+load model from cfimdb-classifier.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.939

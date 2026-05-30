@@ -319,6 +319,9 @@ def train(args, save_info = None):
   if metrics_out is not None:
     init_metrics_csv(metrics_out)
 
+  
+  train_acc, train_f1 = None, None
+  dev_acc, dev_f1 = None, None
   # Run for the specified number of epochs.
   for epoch in range(args.epochs):
     model.train()
@@ -381,9 +384,6 @@ def train(args, save_info = None):
       save_model(model, optimizer, args, config, args.filepath)
   
     print(f"Epoch {epoch}: train loss :: {train_loss :.3f}, train acc :: {train_acc :.3f}, dev acc :: {dev_acc :.3f}")
-  
-  train_acc, train_f1, *_ = model_eval(train_dataloader, model, device)
-  dev_acc, dev_f1, *_ = model_eval(dev_dataloader, model, device)
   
   if save_info is not None:
     save_info.update(
