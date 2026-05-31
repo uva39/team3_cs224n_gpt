@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
 
-conda env create -f env.yml
-conda activate cs224n_dfp
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=script.sh
+source "${SCRIPT_DIR}/script.sh"
