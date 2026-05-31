@@ -80,6 +80,7 @@ venv_deps_installed() {
   python - <<'PY' >/dev/null 2>&1
 import torch
 import transformers
+import sklearn
 PY
 }
 
@@ -120,6 +121,7 @@ print_checks() {
   python - <<'PY'
 import torch
 import transformers
+import sklearn
 print(f"torch {torch.__version__}")
 print(f"transformers {transformers.__version__}")
 print(f"cuda available: {torch.cuda.is_available()}")
