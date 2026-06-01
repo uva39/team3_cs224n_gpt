@@ -48,7 +48,7 @@ def make_config(args: argparse.Namespace, is_sst: bool) -> SimpleNamespace:
     dataset_slug = "sst" if is_sst else "cfimdb"
 
     filepath = args.sst_filepath if is_sst else args.cfimdb_filepath
-    batch_size = args.batch_size if is_sst else 8  # 기존 코드에서는 CFIMDB batch_size가 8로 고정
+    batch_size = args.sst_batch_size if is_sst else args.cfimdb_batch_size  # 기존 코드에서는 CFIMDB batch_size가 8로 고정
 
     prefix = getattr(args, "predictions_prefix", "")
 
@@ -105,8 +105,9 @@ def get_args():
                       choices=('last-linear-layer', 'full-model'), default="last-linear-layer")
   parser.add_argument("--use_gpu", action='store_true')
 
-  parser.add_argument("--batch_size", help='sst: 64, cfimdb: 8 can fit a 12GB GPU', type=int, default=8)
-  parser.add_argument("--hidden_dropout_prob", type=float, default=0.3)
+  parser.add_argument("--sst-batch-size", help='sst: 64, cfimdb: 8 can fit a 12GB GPU', type=int, default=64)
+  parser.add_argument("--cfimdb-batch-size", help='sst: 64, cfimdb: 8 can fit a 12GB GPU', type=int, default=8)
+  parser.add_argument("--hidden-dropout-prob", type=float, default=0.3)
   parser.add_argument("--lr", type=float, help="learning rate, default lr for 'pretrain': 1e-3, 'finetune': 1e-5",
                       default=1e-3)
 
@@ -119,6 +120,8 @@ def get_args():
   
   parser.add_argument("--max-grad-norm", type=float, default=None)  # 1 사용해보자
   parser.add_argument("--weight-decay", type=float, default=0)
+  
+  parser.add_argument("--train-flag", type=int , help='0: sst and cfimdb both\n 1: sst only\n 2: cfimdb only', default=0)
   
   args = parser.parse_args()
   return args
@@ -133,16 +136,20 @@ def main():
   args = get_args()
   seed_everything(args.seed)
   
-  sst_config = make_config(args, True)
-  sst_info = make_save_info_from_config(args, sst_config, 'SST')
-  train_test(sst_config, sst_info)
-  sst_info.save(project_root / sst_config.summary_out)
+  if not args.train_flag in  (0, 1, 2):
+    raise "incorect train_flag!!!!"
   
+  if args.train_flag == 0 or args.train_flag == 1:
+    sst_config = make_config(args, True)
+    sst_info = make_save_info_from_config(args, sst_config, 'SST')
+    train_test(sst_config, sst_info)
+    sst_info.save(project_root / sst_config.summary_out)
   
-  cfimdb_config = make_config(args, False)
-  cfimdb_info = make_save_info_from_config(args, cfimdb_config, 'cfimdb')
-  train_test(cfimdb_config, cfimdb_info)
-  cfimdb_info.save(project_root / cfimdb_config.summary_out)
+  if args.train_flag == 0 or args.train_flag == 2:
+    cfimdb_config = make_config(args, False)
+    cfimdb_info = make_save_info_from_config(args, cfimdb_config, 'cfimdb')
+    train_test(cfimdb_config, cfimdb_info)
+    cfimdb_info.save(project_root / cfimdb_config.summary_out)
 
 
 

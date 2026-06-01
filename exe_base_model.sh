@@ -7,20 +7,21 @@ LOG_FILE="log.txt"
 
 exec > "$LOG_FILE"
 
-#echo "//////////////////////////////////////////"
-#echo "START LAST LAYER BASELINE"
-#echo "//////////////////////////////////////////"
+echo "//////////////////////////////////////////"
+echo "START LAST LAYER BASELINE"
+echo "//////////////////////////////////////////"
 
-#PYTHONPATH=. python -u ./scripts/run_classifier.py \
-#    --use_gpu \
-#    --fine-tune-mode last-linear-layer \
-#    --lr 1e-3 \
-#    --epochs 10 \
-#    --batch_size 8 \
-#    --hidden_dropout_prob 0.2 \
-#    --sst-filepath checkpoints/base-linear-sst.pt \
-#    --cfimdb-filepath checkpoints/base-linear-cfimdb.pt \
-#    --predictions-prefix base-linear-
+PYTHONPATH=. python -u ./scripts/run_classifier.py \
+    --use_gpu \
+    --fine-tune-mode last-linear-layer \
+    --lr 1e-3 \
+    --epochs 10 \
+    --sst-batch-size 64 \
+    --cfimdb-batch-size 8 \
+    --hidden-dropout-prob 0.2 \
+    --sst-filepath checkpoints/base-linear-sst.pt \
+    --cfimdb-filepath checkpoints/base-linear-cfimdb.pt \
+    --predictions-prefix base-linear-
 
 echo "//////////////////////////////////////////"
 echo "START FULL MODEL BASELINE_1"
@@ -31,8 +32,9 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --fine-tune-mode full-model \
     --lr 1e-5 \
     --epochs 5 \
-    --batch_size 8 \
-    --hidden_dropout_prob 0.2 \
+    --sst-batch-size 64 \
+    --cfimdb-batch-size 8 \
+    --hidden-dropout-prob 0.2 \
     --sst-filepath checkpoints/base-full-lr1e-5-ep5-sst.pt \
     --cfimdb-filepath checkpoints/base-full-lr1e-5-ep5-cfimdb.pt \
     --predictions-prefix base-full-lr1e-5-ep5-
@@ -46,8 +48,9 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --fine-tune-mode full-model \
     --lr 2e-5 \
     --epochs 5 \
-    --batch_size 8 \
-    --hidden_dropout_prob 0.2 \
+    --sst-batch-size 64 \
+    --cfimdb-batch-size 8 \
+    --hidden-dropout-prob 0.2 \
     --sst-filepath checkpoints/base-full-lr2e-5-ep5-sst.pt \
     --cfimdb-filepath checkpoints/base-full-lr2e-5-ep5-cfimdb.pt \
     --predictions-prefix base-full-lr2e-5-ep5-
