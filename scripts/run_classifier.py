@@ -11,7 +11,7 @@ if root_dir not in sys.path:
 import random, numpy as np, argparse, torch
 from types import SimpleNamespace
 
-from config import SaveInfo
+from schema import SaveInfo
 from classifier import train, test
 
 
@@ -41,7 +41,12 @@ def make_save_info_from_config(args, config, dataset: str) -> SaveInfo:
         dev_out=config.dev_out,
         test_out=config.test_out,
         summary_out=config.summary_out,
-        metrics_out=config.metrics_out
+        metrics_out=config.metrics_out,
+        
+        max_grad_norm = config.max_grad_norm,
+        unuse_schedule = config.unuse_schedule,
+        warmup_ratio = config.warmup_ratio if config.unuse_schedule else None,
+        use_simple_classifier = config.use_simple_classifier,
     )
 
 def make_config(args: argparse.Namespace, is_sst: bool) -> SimpleNamespace:
@@ -77,7 +82,15 @@ def make_config(args: argparse.Namespace, is_sst: bool) -> SimpleNamespace:
         metrics_out=f"runs/{prefix}{args.fine_tune_mode}-{dataset_slug}-metrics.csv",
         
         max_grad_norm=args.max_grad_norm,
+        unuse_schedule = args.unuse_schedule,
+        warmup_ratio = args.warmup_ratio,
+        use_simple_classifier = args.use_simple_classifier,
     )
+    
+#  parser.add_argument("--train-flag", type=int , help='0: sst and cfimdb both\n 1: sst only\n 2: cfimdb only', default=0)
+#  parser.add_argument("--unuse-schedule", action="store_true", default=False)
+#  parser.add_argument("--warmup-ratio", type=float, default=0.06)
+#  parser.add_argument("--use-simple-classifier", action="store_true", default=False)
 
     return config
 
@@ -122,7 +135,10 @@ def get_args():
   parser.add_argument("--weight-decay", type=float, default=0)
   
   parser.add_argument("--train-flag", type=int , help='0: sst and cfimdb both\n 1: sst only\n 2: cfimdb only', default=0)
-  
+  parser.add_argument("--unuse-schedule", action="store_true", default=False)
+  parser.add_argument("--warmup-ratio", type=float, default=0.06)
+  parser.add_argument("--use-simple-classifier", action="store_true", default=False)
+
   args = parser.parse_args()
   return args
 

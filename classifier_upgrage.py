@@ -59,7 +59,16 @@ class GPT2SentimentClassifier(torch.nn.Module):
 
     ### TODO: Create any instance variables you need to classify the sentiment of BERT embeddings.
     ### YOUR CODE HERE
-    self.layer = torch.nn.Linear(self.gpt.config.hidden_size, self.num_labels)
+    if getattr(config, "use_simple_classifier", True):
+      self.classifier = torch.nn.Linear(self.gpt.config.hidden_size, self.num_labels)
+    else:
+      self.classifier = torch.nn.Sequential(
+        torch.nn.Dropout(config.hidden_dropout_prob),
+        torch.nn.Linear(self.gpt.config.hidden_size, self.gpt.config.hidden_size),
+        torch.nn.GELU(),
+        torch.nn.Dropout(config.hidden_dropout_prob),
+        torch.nn.Linear(self.gpt.config.hidden_size, self.num_labels)
+    )
     #raise NotImplementedError
 
 
@@ -76,7 +85,7 @@ class GPT2SentimentClassifier(torch.nn.Module):
     batch_idx = torch.arange(x.size(0), device=x.device)
 
     x = x[batch_idx, last_token_idx, :]
-    logits = self.layer(x)
+    logits = self.classifier(x)
 
     return logits
     #raise NotImplementedError
@@ -305,7 +314,9 @@ def train(args, save_info = None):
             'num_labels': num_labels,
             'hidden_size': 768,
             'data_dir': '.',
-            'fine_tune_mode': args.fine_tune_mode}
+            'fine_tune_mode': args.fine_tune_mode,
+            'use_simple_classifier': args.use_simple_classifier
+            }
 
   config = SimpleNamespace(**config)
 
@@ -316,15 +327,18 @@ def train(args, save_info = None):
   optimizer = AdamW(model.parameters(), lr=lr, weight_decay=getattr(args, "weight_decay", 0))
   
   total_steps = args.epochs * len(train_dataloader)
-  warmup_steps = int(total_steps * args.warmup_ratio)
+  warmup_steps = int(total_steps * getattr(args, "warmup_ratio", 0.06))
   
-  scheduler = get_linear_schedule_with_warmup(
-      optimizer,
-      num_warmup_steps=warmup_steps,
-      num_training_steps=total_steps
-  )
   
-  best_dev_acc = 0
+  scheduler = None
+  if not getattr(args, "unuse_schedule", False):
+    scheduler = get_linear_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=warmup_steps,
+        num_training_steps=total_steps
+    )
+  
+  best_dev_acc = -1
   
   metrics_out = getattr(args, "metrics_out", None)
   if metrics_out is not None:
@@ -354,7 +368,9 @@ def train(args, save_info = None):
       if getattr(args, 'max_grad_norm', None) is not None:
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.max_grad_norm)
       optimizer.step()
-
+      if scheduler is not None:
+        scheduler.step()
+        
       train_loss += loss.item()
       num_batches += 1
 
@@ -365,6 +381,9 @@ def train(args, save_info = None):
 
     is_best = dev_acc > best_dev_acc
     
+    if is_best:
+      best_dev_acc = dev_acc
+      
     if metrics_out is not None:
       append_metrics_csv(metrics_out, {
         'dataset': getattr(args, "dataset", ""),
@@ -383,9 +402,6 @@ def train(args, save_info = None):
         'is_best': is_best,
         'checkpoint_path': args.filepath
       })
-      
-    if is_best:
-      best_dev_acc = dev_acc
       
       if save_info is not None:
         save_info.update(
