@@ -20,8 +20,6 @@ from models.gpt2 import GPT2Model
 from optimizer import AdamW
 from tqdm import tqdm
 
-from config import SaveInfo
-
 TQDM_DISABLE = False
 
 
@@ -383,6 +381,15 @@ def train(args, save_info = None):
     
     if is_best:
       best_dev_acc = dev_acc
+    
+      if save_info is not None:
+        save_info.update(
+          best_epoch=epoch,
+          best_dev_acc=float(dev_acc),
+          best_dev_f1=float(dev_f1)
+        )
+        
+      save_model(model, optimizer, args, config, args.filepath)
       
     if metrics_out is not None:
       append_metrics_csv(metrics_out, {
@@ -402,15 +409,6 @@ def train(args, save_info = None):
         'is_best': is_best,
         'checkpoint_path': args.filepath
       })
-      
-      if save_info is not None:
-        save_info.update(
-            best_epoch=epoch,
-            best_dev_acc=float(dev_acc),
-            best_dev_f1=float(dev_f1)
-        )
-        
-      save_model(model, optimizer, args, config, args.filepath)
   
     print(f"Epoch {epoch}: train loss :: {train_loss :.3f}, train acc :: {train_acc :.3f}, dev acc :: {dev_acc :.3f}")
   
@@ -429,7 +427,7 @@ def train(args, save_info = None):
 def test(args):
   with torch.no_grad():
     device = torch.device('cuda') if args.use_gpu else torch.device('cpu')
-    saved = torch.load(args.filepath)
+    saved = torch.load(args.filepath, map_location=device)
     config = saved['model_config']
     model = GPT2SentimentClassifier(config)
     model.load_state_dict(saved['model'])

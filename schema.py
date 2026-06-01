@@ -31,6 +31,8 @@ class SaveInfo:
     summary_out: Union[str, Path] = ""
     metrics_out: Union[str, Path] = ""
     
+    
+    weight_decay: Optional[float] = None,
     max_grad_norm: Optional[float] = None
     unuse_schedule: Optional[bool] = None
     warmup_ratio: Optional[float] = None
