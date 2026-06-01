@@ -7,21 +7,21 @@ LOG_FILE="log.txt"
 
 exec > "$LOG_FILE"
 
-echo "//////////////////////////////////////////"
-echo "START LAST LAYER BASELINE"
-echo "//////////////////////////////////////////"
+#echo "//////////////////////////////////////////"
+#echo "START LAST LAYER BASELINE"
+#echo "//////////////////////////////////////////"
 
-PYTHONPATH=. python -u ./scripts/run_classifier.py \
-    --use_gpu \
-    --fine-tune-mode last-linear-layer \
-    --lr 1e-3 \
-    --epochs 10 \
-    --sst-batch-size 64 \
-    --cfimdb-batch-size 8 \
-    --hidden-dropout-prob 0.2 \
-    --sst-filepath checkpoints/base-linear-sst.pt \
-    --cfimdb-filepath checkpoints/base-linear-cfimdb.pt \
-    --predictions-prefix base-linear-
+#PYTHONPATH=. python -u ./scripts/run_classifier.py \
+#    --use_gpu \
+#    --fine-tune-mode last-linear-layer \
+#    --lr 1e-3 \
+#    --epochs 10 \
+#    --sst-batch-size 64 \
+#    --cfimdb-batch-size 8 \
+#    --hidden-dropout-prob 0.2 \
+#    --sst-filepath checkpoints/base-linear-sst.pt \
+#    --cfimdb-filepath checkpoints/base-linear-cfimdb.pt \
+#    --predictions-prefix base-linear-
 
 echo "//////////////////////////////////////////"
 echo "START FULL MODEL BASELINE_1"
