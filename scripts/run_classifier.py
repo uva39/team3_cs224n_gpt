@@ -142,7 +142,7 @@ def main():
   cfimdb_config = make_config(args, False)
   cfimdb_info = make_save_info_from_config(args, cfimdb_config, 'cfimdb')
   train_test(cfimdb_config, cfimdb_info)
-  cfimdb_info.save(project_root / sst_config.summary_out)
+  cfimdb_info.save(project_root / cfimdb_config.summary_out)
 
 
 
