@@ -75,6 +75,8 @@ def make_config(args: argparse.Namespace, is_sst: bool) -> SimpleNamespace:
 
         summary_out=f"runs/{prefix}{args.fine_tune_mode}-{dataset_slug}-summary.json",
         metrics_out=f"runs/{prefix}{args.fine_tune_mode}-{dataset_slug}-metrics.csv",
+        
+        max_grad_norm=args.max_grad_norm,
     )
 
     return config
@@ -114,6 +116,9 @@ def get_args():
   
   parser.add_argument("--sst-record-name", default='sst_record.json')
   parser.add_argument("--cfimdb-record-name", default='cfimdb_record.json')
+  
+  parser.add_argument("--max-grad-norm", type=float, default=None)  # 1 사용해보자
+  parser.add_argument("--weight-decay", type=float, default=0)
   
   args = parser.parse_args()
   return args
