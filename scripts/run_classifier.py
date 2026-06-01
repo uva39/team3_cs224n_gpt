@@ -12,7 +12,7 @@ import random, numpy as np, argparse, torch
 from types import SimpleNamespace
 
 from schema import SaveInfo
-from classifier import train, test
+from classifier_upgrade import train, test
 
 
 def seed_everything(seed=11711):
