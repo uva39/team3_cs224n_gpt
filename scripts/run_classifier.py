@@ -142,7 +142,7 @@ def get_args():
   parser.add_argument("--use-simple-classifier", action="store_true", default=False)
 
 
-  parser.add_argument('--pooling-config', type=str, default=0, help="last, mean, last_mean")
+  parser.add_argument('--pooling-config', type=str, default="last", help="last, mean, last_mean")
   args = parser.parse_args()
   return args
 

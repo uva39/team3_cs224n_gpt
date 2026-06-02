@@ -63,17 +63,24 @@ class GPT2SentimentClassifier(torch.nn.Module):
     #   "mean"      : padding 제외한 전체 토큰 hidden state 평균 사용
     #   "last_mean" : last pooling과 mean pooling을 concat해서 사용
     self.pooling_config = getattr(config, "pooling_config", "last")
-      
+    
+    hidden_size = self.gpt.config.hidden_size
+
+    if self.pooling_config == "last_mean":
+      classifier_input_size = hidden_size * 2
+    else:
+      classifier_input_size = hidden_size
+
     if getattr(config, "use_simple_classifier", True):
-      self.classifier = torch.nn.Linear(self.gpt.config.hidden_size, self.num_labels)
+      self.classifier = torch.nn.Linear(classifier_input_size, self.num_labels)
     else:
       self.classifier = torch.nn.Sequential(
         torch.nn.Dropout(config.hidden_dropout_prob),
-        torch.nn.Linear(self.gpt.config.hidden_size, self.gpt.config.hidden_size),
+        torch.nn.Linear(classifier_input_size, hidden_size),
         torch.nn.GELU(),
         torch.nn.Dropout(config.hidden_dropout_prob),
-        torch.nn.Linear(self.gpt.config.hidden_size, self.num_labels)
-    )
+        torch.nn.Linear(hidden_size, self.num_labels)
+      )
     #raise NotImplementedError
 
 
@@ -348,7 +355,8 @@ def train(args, save_info = None):
             'hidden_size': 768,
             'data_dir': '.',
             'fine_tune_mode': args.fine_tune_mode,
-            'use_simple_classifier': args.use_simple_classifier
+            'use_simple_classifier': args.use_simple_classifier,
+            'pooling_config': args.pooling_config
             }
 
   config = SimpleNamespace(**config)
@@ -519,7 +527,7 @@ def get_args():
   return args
   
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # don't execute this file directily. this main function is old version
   args = get_args()
   seed_everything(args.seed)
   
