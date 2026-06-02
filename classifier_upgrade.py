@@ -57,6 +57,13 @@ class GPT2SentimentClassifier(torch.nn.Module):
 
     ### TODO: Create any instance variables you need to classify the sentiment of BERT embeddings.
     ### YOUR CODE HERE
+    
+    # pooling_config:
+    #   "last"      : 마지막 실제 토큰 hidden state 사용
+    #   "mean"      : padding 제외한 전체 토큰 hidden state 평균 사용
+    #   "last_mean" : last pooling과 mean pooling을 concat해서 사용
+    self.pooling_config = getattr(config, "pooling_config", "last")
+      
     if getattr(config, "use_simple_classifier", True):
       self.classifier = torch.nn.Linear(self.gpt.config.hidden_size, self.num_labels)
     else:
@@ -78,15 +85,43 @@ class GPT2SentimentClassifier(torch.nn.Module):
     ###       the training loop currently uses F.cross_entropy as the loss function.
     ### YOUR CODE HERE
     x = self.gpt(input_ids, attention_mask)['last_hidden_state']
-
+    """
     last_token_idx = attention_mask.sum(dim=1) - 1    # 마지막 실제 토큰 위치 찾기
     batch_idx = torch.arange(x.size(0), device=x.device)
 
     x = x[batch_idx, last_token_idx, :]
+    """
+    x = self.pool_hidden_states(x, attention_mask)
     logits = self.classifier(x)
 
     return logits
     #raise NotImplementedError
+    
+  def pool_hidden_states(self, hidden_states, attention_mask):
+    '''
+    hidden_states: [batch_size, seq_len, hidden_size]
+    attention_mask: [batch_size, seq_len]
+    '''
+
+    # last pooling
+    last_token_idx = attention_mask.sum(dim=1) - 1
+    batch_idx = torch.arange(hidden_states.size(0), device=hidden_states.device)
+    last_x = hidden_states[batch_idx, last_token_idx, :]
+
+    if self.pooling_config == "last":
+      return last_x
+
+    # mean pooling
+    mask = attention_mask.unsqueeze(-1).type_as(hidden_states)  # [batch, seq_len, 1]
+    summed = (hidden_states * mask).sum(dim=1)                  # [batch, hidden]
+    lengths = mask.sum(dim=1).clamp(min=1.0)                    # [batch, 1]
+    mean_x = summed / lengths                                   # [batch, hidden]
+
+    if self.pooling_config == "mean":
+      return mean_x
+
+    if self.pooling_config == "last_mean":
+      return torch.cat([last_x, mean_x], dim=-1)
 
 
 

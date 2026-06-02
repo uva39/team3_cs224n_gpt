@@ -32,11 +32,12 @@ class SaveInfo:
     metrics_out: Union[str, Path] = ""
     
     
-    weight_decay: Optional[float] = None,
+    weight_decay: Optional[float] = None
     max_grad_norm: Optional[float] = None
     unuse_schedule: Optional[bool] = None
     warmup_ratio: Optional[float] = None
     use_simple_classifier: Optional[bool] = None
+    pooling_config : Optional[str] = None
 
     def update(self, **kwargs):
         for key, value in kwargs.items():

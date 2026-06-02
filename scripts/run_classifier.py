@@ -48,6 +48,7 @@ def make_save_info_from_config(args, config, dataset: str) -> SaveInfo:
     unuse_schedule=config.unuse_schedule,
     warmup_ratio=config.warmup_ratio if not config.unuse_schedule else None,
     use_simple_classifier=config.use_simple_classifier,
+    pooling_config=args.pooling_config,
   )
 
 def make_config(args: argparse.Namespace, is_sst: bool) -> SimpleNamespace:
@@ -87,6 +88,8 @@ def make_config(args: argparse.Namespace, is_sst: bool) -> SimpleNamespace:
         unuse_schedule = args.unuse_schedule,
         warmup_ratio = args.warmup_ratio,
         use_simple_classifier = args.use_simple_classifier,
+        
+        pooling_config=args.pooling_config,
     )
   
 
@@ -129,6 +132,7 @@ def get_args():
   parser.add_argument("--sst-record-name", default='sst_record.json')
   parser.add_argument("--cfimdb-record-name", default='cfimdb_record.json')
   
+  
   parser.add_argument("--max-grad-norm", type=float, default=None)
   parser.add_argument("--weight-decay", type=float, default=0)
 
@@ -137,6 +141,8 @@ def get_args():
   parser.add_argument("--warmup-ratio", type=float, default=0.06)
   parser.add_argument("--use-simple-classifier", action="store_true", default=False)
 
+
+  parser.add_argument('--pooling-config', type=str, default=0, help="last, mean, last_mean")
   args = parser.parse_args()
   return args
 
@@ -152,6 +158,9 @@ def main():
   
   if not args.train_flag in  (0, 1, 2):
     raise  ValueError("incorrect train_flag: choose 0, 1, or 2")
+  
+  assert args.pooling_config in ["last", "mean", "last_mean"], \
+    f"Unknown pooling_config: {args.pooling_config}"
   
   if args.train_flag == 0 or args.train_flag == 1:
     sst_config = make_config(args, True)

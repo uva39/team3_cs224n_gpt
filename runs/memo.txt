@@ -1,0 +1,1 @@
+base_model, no-Rdrop은 last pooling방식 사용
