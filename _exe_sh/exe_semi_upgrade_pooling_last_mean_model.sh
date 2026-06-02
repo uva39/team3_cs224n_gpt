@@ -24,7 +24,7 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --predictions-prefix no-Rdrop-mean-mlp-linear- \
     --max-grad-norm 1.0 \
     --weight-decay 0.01 \
-    --pooling-config 'mean'
+    --pooling-config 'last_mean'
 #    --unuse-schedule \
 #    --use-simple-classifier
 
@@ -45,7 +45,7 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --predictions-prefix no-Rdrop-mean-mlp-full-lr1e-5-ep5- \
     --max-grad-norm 1.0 \
     --weight-decay 0.01 \
-    --pooling-config 'mean'
+    --pooling-config 'last_mean'
 #    --unuse-schedule \
 #    --use-simple-classifier
 
@@ -66,7 +66,7 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --predictions-prefix no-Rdrop-mean-mlp-full-lr2e-5-ep5- \
     --max-grad-norm 1.0 \
     --weight-decay 0.01 \
-    --pooling-config 'mean'
+    --pooling-config 'last_mean'
 #    --unuse-schedule \
 #    --use-simple-classifier
 
