@@ -1,0 +1,186 @@
+//////////////////////////////////////////
+START LAST LAYER NO_RDROP
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/no-Rdrop-linear-sst.pt
+Epoch 0: train loss :: 1.937, train acc :: 0.394, dev acc :: 0.385
+save the model to checkpoints/no-Rdrop-linear-sst.pt
+Epoch 1: train loss :: 1.478, train acc :: 0.402, dev acc :: 0.407
+Epoch 2: train loss :: 1.384, train acc :: 0.392, dev acc :: 0.379
+save the model to checkpoints/no-Rdrop-linear-sst.pt
+Epoch 3: train loss :: 1.354, train acc :: 0.464, dev acc :: 0.445
+Epoch 4: train loss :: 1.334, train acc :: 0.450, dev acc :: 0.431
+Epoch 5: train loss :: 1.320, train acc :: 0.458, dev acc :: 0.420
+Epoch 6: train loss :: 1.309, train acc :: 0.473, dev acc :: 0.441
+save the model to checkpoints/no-Rdrop-linear-sst.pt
+Epoch 7: train loss :: 1.298, train acc :: 0.481, dev acc :: 0.449
+save the model to checkpoints/no-Rdrop-linear-sst.pt
+Epoch 8: train loss :: 1.285, train acc :: 0.485, dev acc :: 0.458
+save the model to checkpoints/no-Rdrop-linear-sst.pt
+Epoch 9: train loss :: 1.288, train acc :: 0.489, dev acc :: 0.460
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/no-Rdrop-linear-sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.460
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/no-Rdrop-linear-cfimdb.pt
+Epoch 0: train loss :: 1.206, train acc :: 0.782, dev acc :: 0.776
+save the model to checkpoints/no-Rdrop-linear-cfimdb.pt
+Epoch 1: train loss :: 0.743, train acc :: 0.828, dev acc :: 0.808
+save the model to checkpoints/no-Rdrop-linear-cfimdb.pt
+Epoch 2: train loss :: 0.604, train acc :: 0.803, dev acc :: 0.820
+Epoch 3: train loss :: 0.568, train acc :: 0.852, dev acc :: 0.820
+Epoch 4: train loss :: 0.503, train acc :: 0.649, dev acc :: 0.629
+Epoch 5: train loss :: 0.459, train acc :: 0.794, dev acc :: 0.731
+save the model to checkpoints/no-Rdrop-linear-cfimdb.pt
+Epoch 6: train loss :: 0.481, train acc :: 0.865, dev acc :: 0.845
+save the model to checkpoints/no-Rdrop-linear-cfimdb.pt
+Epoch 7: train loss :: 0.442, train acc :: 0.873, dev acc :: 0.853
+save the model to checkpoints/no-Rdrop-linear-cfimdb.pt
+Epoch 8: train loss :: 0.426, train acc :: 0.880, dev acc :: 0.865
+Epoch 9: train loss :: 0.402, train acc :: 0.877, dev acc :: 0.849
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/no-Rdrop-linear-cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.865
+
+training and test process is end
+
+//////////////////////////////////////////
+START FULL MODEL NO_RDROP_1
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/no-Rdrop-full-lr1e-5-ep5-sst.pt
+Epoch 0: train loss :: 1.803, train acc :: 0.347, dev acc :: 0.341
+save the model to checkpoints/no-Rdrop-full-lr1e-5-ep5-sst.pt
+Epoch 1: train loss :: 1.419, train acc :: 0.470, dev acc :: 0.451
+save the model to checkpoints/no-Rdrop-full-lr1e-5-ep5-sst.pt
+Epoch 2: train loss :: 1.287, train acc :: 0.493, dev acc :: 0.473
+Epoch 3: train loss :: 1.233, train acc :: 0.504, dev acc :: 0.473
+save the model to checkpoints/no-Rdrop-full-lr1e-5-ep5-sst.pt
+Epoch 4: train loss :: 1.215, train acc :: 0.509, dev acc :: 0.477
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/no-Rdrop-full-lr1e-5-ep5-sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.477
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/no-Rdrop-full-lr1e-5-ep5-cfimdb.pt
+Epoch 0: train loss :: 0.823, train acc :: 0.806, dev acc :: 0.808
+save the model to checkpoints/no-Rdrop-full-lr1e-5-ep5-cfimdb.pt
+Epoch 1: train loss :: 0.250, train acc :: 0.977, dev acc :: 0.955
+Epoch 2: train loss :: 0.149, train acc :: 0.989, dev acc :: 0.955
+save the model to checkpoints/no-Rdrop-full-lr1e-5-ep5-cfimdb.pt
+Epoch 3: train loss :: 0.099, train acc :: 0.992, dev acc :: 0.963
+Epoch 4: train loss :: 0.071, train acc :: 0.992, dev acc :: 0.963
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/no-Rdrop-full-lr1e-5-ep5-cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.963
+
+training and test process is end
+
+//////////////////////////////////////////
+START FULL MODEL NO_RDROP_2
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/no-Rdrop-full-lr2e-5-ep5-sst.pt
+Epoch 0: train loss :: 1.715, train acc :: 0.434, dev acc :: 0.418
+save the model to checkpoints/no-Rdrop-full-lr2e-5-ep5-sst.pt
+Epoch 1: train loss :: 1.281, train acc :: 0.513, dev acc :: 0.473
+save the model to checkpoints/no-Rdrop-full-lr2e-5-ep5-sst.pt
+Epoch 2: train loss :: 1.160, train acc :: 0.544, dev acc :: 0.483
+save the model to checkpoints/no-Rdrop-full-lr2e-5-ep5-sst.pt
+Epoch 3: train loss :: 1.103, train acc :: 0.564, dev acc :: 0.496
+save the model to checkpoints/no-Rdrop-full-lr2e-5-ep5-sst.pt
+Epoch 4: train loss :: 1.072, train acc :: 0.574, dev acc :: 0.506
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/no-Rdrop-full-lr2e-5-ep5-sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.506
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/no-Rdrop-full-lr2e-5-ep5-cfimdb.pt
+Epoch 0: train loss :: 0.670, train acc :: 0.972, dev acc :: 0.967
+Epoch 1: train loss :: 0.202, train acc :: 0.984, dev acc :: 0.967
+save the model to checkpoints/no-Rdrop-full-lr2e-5-ep5-cfimdb.pt
+Epoch 2: train loss :: 0.112, train acc :: 0.990, dev acc :: 0.971
+Epoch 3: train loss :: 0.065, train acc :: 0.995, dev acc :: 0.967
+Epoch 4: train loss :: 0.049, train acc :: 0.996, dev acc :: 0.963
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/no-Rdrop-full-lr2e-5-ep5-cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.971
+
+training and test process is end
+
+//////////////////////////////////////////
+ALL EXPERIMENTS DONE
+//////////////////////////////////////////

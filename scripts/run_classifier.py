@@ -43,7 +43,7 @@ def make_save_info_from_config(args, config, dataset: str) -> SaveInfo:
     test_out=config.test_out,
     summary_out=config.summary_out,
     metrics_out=config.metrics_out,
-
+    
     max_grad_norm=config.max_grad_norm,
     unuse_schedule=config.unuse_schedule,
     warmup_ratio=config.warmup_ratio if not config.unuse_schedule else None,
@@ -131,7 +131,7 @@ def get_args():
   
   parser.add_argument("--max-grad-norm", type=float, default=None)
   parser.add_argument("--weight-decay", type=float, default=0)
-  
+
   parser.add_argument("--train-flag", type=int , help='0: sst and cfimdb both\n 1: sst only\n 2: cfimdb only', default=0)
   parser.add_argument("--unuse-schedule", action="store_true", default=False)
   parser.add_argument("--warmup-ratio", type=float, default=0.06)
