@@ -334,7 +334,19 @@ def append_metrics_csv(filepath, row):
   with open(filepath, 'a', newline='') as f:
     writer = csv.DictWriter(f, fieldnames=row.keys())
     writer.writerow(row)
-    
+
+def symmetric_kl_loss(logits1, logits2):
+  log_probs1 = F.log_softmax(logits1, dim=-1)
+  log_probs2 = F.log_softmax(logits2, dim=-1)
+
+  probs1 = F.softmax(logits1, dim=-1)
+  probs2 = F.softmax(logits2, dim=-1)
+
+  kl_1_to_2 = F.kl_div(log_probs1, probs2, reduction='batchmean')
+  kl_2_to_1 = F.kl_div(log_probs2, probs1, reduction='batchmean')
+
+  return (kl_1_to_2 + kl_2_to_1) / 2
+
 def train(args, save_info = None):
   device = torch.device('cuda') if args.use_gpu else torch.device('cpu')
   # Create the data and its corresponding datasets and dataloader.
@@ -405,7 +417,26 @@ def train(args, save_info = None):
       logits = model(b_ids, b_mask)
       loss = F.cross_entropy(logits, b_labels.view(-1), reduction='mean')
 
+      optimizer.zero_grad()
+
+      if getattr(args, "use_rdrop", False):
+        logits1 = model(b_ids, b_mask)
+        logits2 = model(b_ids, b_mask)
+
+        ce_loss1 = F.cross_entropy(logits1, b_labels.view(-1), reduction='mean')
+        ce_loss2 = F.cross_entropy(logits2, b_labels.view(-1), reduction='mean')
+        ce_loss = (ce_loss1 + ce_loss2) / 2
+
+        kl_loss = symmetric_kl_loss(logits1, logits2)
+
+        loss = ce_loss + args.rdrop_alpha * kl_loss
+
+      else:
+        logits = model(b_ids, b_mask)
+        loss = F.cross_entropy(logits, b_labels.view(-1), reduction='mean')
+
       loss.backward()
+      
       if getattr(args, 'max_grad_norm', None) is not None:
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.max_grad_norm)
       optimizer.step()

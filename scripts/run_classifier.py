@@ -49,6 +49,9 @@ def make_save_info_from_config(args, config, dataset: str) -> SaveInfo:
     warmup_ratio=config.warmup_ratio if not config.unuse_schedule else None,
     use_simple_classifier=config.use_simple_classifier,
     pooling_config=args.pooling_config,
+    
+    use_rdrop=config.use_rdrop,
+    rdrop_alpha=config.rdrop_alpha,
   )
 
 def make_config(args: argparse.Namespace, is_sst: bool) -> SimpleNamespace:
@@ -88,6 +91,8 @@ def make_config(args: argparse.Namespace, is_sst: bool) -> SimpleNamespace:
         unuse_schedule = args.unuse_schedule,
         warmup_ratio = args.warmup_ratio,
         use_simple_classifier = args.use_simple_classifier,
+        use_rdrop=args.use_rdrop,
+        rdrop_alpha=args.rdrop_alpha,
         
         pooling_config=args.pooling_config,
     )
@@ -141,8 +146,11 @@ def get_args():
   parser.add_argument("--warmup-ratio", type=float, default=0.06)
   parser.add_argument("--use-simple-classifier", action="store_true", default=False)
 
-
   parser.add_argument('--pooling-config', type=str, default="last", help="last, mean, last_mean")
+  
+  parser.add_argument("--use-rdrop", action="store_true", default=False)
+  parser.add_argument("--rdrop-alpha", type=float, default=1.0)
+  
   args = parser.parse_args()
   return args
 

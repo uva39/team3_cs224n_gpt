@@ -38,6 +38,9 @@ class SaveInfo:
     warmup_ratio: Optional[float] = None
     use_simple_classifier: Optional[bool] = None
     pooling_config : Optional[str] = None
+    
+    use_rdrop: Optional[bool] = None
+    rdrop_alpha: Optional[float] = None
 
     def update(self, **kwargs):
         for key, value in kwargs.items():
