@@ -1,1 +1,3 @@
 base_model, no-Rdrop은 last pooling방식 사용
+
+R-Drop 사용 시 메모리가 터져서 cfimdb + R-Drop의 경우 batch size를 반으로 줄임
