@@ -24,10 +24,10 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --hidden-dropout-prob 0.2 \
     --sst-filepath checkpoints/sst.pt \
     --cfimdb-filepath checkpoints/cfimdb.pt \
-    --predictions-prefix Rdrop-mean-mlp-linear-RdropAlpha$alpha- \
+    --predictions-prefix Rdrop-last-mean-mlp-linear-RdropAlpha$alpha- \
     --max-grad-norm 1.0 \
     --weight-decay 0.01 \
-    --pooling-config 'mean' \
+    --pooling-config 'last_mean' \
     --use-rdrop \
     --rdrop-alpha $alpha
     
@@ -44,10 +44,10 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --hidden-dropout-prob 0.2 \
     --sst-filepath checkpoints/sst.pt \
     --cfimdb-filepath checkpoints/cfimdb.pt \
-    --predictions-prefix Rdrop-mean-simple-linear-RdropAlpha$alpha- \
+    --predictions-prefix Rdrop-last-mean-simple-linear-RdropAlpha$alpha- \
     --max-grad-norm 1.0 \
     --weight-decay 0.01 \
-    --pooling-config 'mean' \
+    --pooling-config 'last_mean' \
     --use-simple-classifier \
     --use-rdrop \
     --rdrop-alpha $alpha
@@ -62,14 +62,14 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --lr 1e-5 \
     --epochs 5 \
     --sst-batch-size 64 \
-    --cfimdb-batch-size 8 \
+    --cfimdb-batch-size 4 \
     --hidden-dropout-prob 0.2 \
     --sst-filepath checkpoints/sst.pt \
     --cfimdb-filepath checkpoints/cfimdb.pt \
-    --predictions-prefix Rdrop-mean-mlp-full-lr1e-5-ep5-RdropAlpha$alpha- \
+    --predictions-prefix Rdrop-last-mean-mlp-full-lr1e-5-ep5-RdropAlpha$alpha- \
     --max-grad-norm 1.0 \
     --weight-decay 0.01 \
-    --pooling-config 'mean' \
+    --pooling-config 'last_mean' \
     --use-rdrop \
     --rdrop-alpha $alpha
 
@@ -79,14 +79,14 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --lr 1e-5 \
     --epochs 5 \
     --sst-batch-size 64 \
-    --cfimdb-batch-size 8 \
+    --cfimdb-batch-size 4 \
     --hidden-dropout-prob 0.2 \
     --sst-filepath checkpoints/sst.pt \
     --cfimdb-filepath checkpoints/cfimdb.pt \
-    --predictions-prefix Rdrop-mean-simple-full-lr1e-5-ep5-RdropAlpha$alpha- \
+    --predictions-prefix Rdrop-last-mean-simple-full-lr1e-5-ep5-RdropAlpha$alpha- \
     --max-grad-norm 1.0 \
     --weight-decay 0.01 \
-    --pooling-config 'mean' \
+    --pooling-config 'last_mean' \
     --use-simple-classifier \
     --use-rdrop \
     --rdrop-alpha $alpha
@@ -101,14 +101,14 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --lr 2e-5 \
     --epochs 5 \
     --sst-batch-size 64 \
-    --cfimdb-batch-size 8 \
+    --cfimdb-batch-size 4 \
     --hidden-dropout-prob 0.2 \
     --sst-filepath checkpoints/sst.pt \
     --cfimdb-filepath checkpoints/cfimdb.pt \
-    --predictions-prefix Rdrop-mean-mlp-full-lr2e-5-ep5-RdropAlpha$alpha- \
+    --predictions-prefix Rdrop-last-mean-mlp-full-lr2e-5-ep5-RdropAlpha$alpha- \
     --max-grad-norm 1.0 \
     --weight-decay 0.01 \
-    --pooling-config 'mean' \
+    --pooling-config 'last_mean' \
     --use-rdrop \
     --rdrop-alpha $alpha
 #    --use-simple-classifier
@@ -119,14 +119,14 @@ PYTHONPATH=. python -u ./scripts/run_classifier.py \
     --lr 2e-5 \
     --epochs 5 \
     --sst-batch-size 64 \
-    --cfimdb-batch-size 8 \
+    --cfimdb-batch-size 4 \
     --hidden-dropout-prob 0.2 \
     --sst-filepath checkpoints/sst.pt \
     --cfimdb-filepath checkpoints/cfimdb.pt \
-    --predictions-prefix Rdrop-mean-simple-full-lr2e-5-ep5-RdropAlpha$alpha- \
+    --predictions-prefix Rdrop-last-mean-simple-full-lr2e-5-ep5-RdropAlpha$alpha- \
     --max-grad-norm 1.0 \
     --weight-decay 0.01 \
-    --pooling-config 'mean' \
+    --pooling-config 'last_mean' \
     --use-simple-classifier \
     --use-rdrop \
     --rdrop-alpha $alpha

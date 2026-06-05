@@ -414,10 +414,6 @@ def train(args, save_info = None):
       b_labels = b_labels.to(device)
 
       optimizer.zero_grad()
-      logits = model(b_ids, b_mask)
-      loss = F.cross_entropy(logits, b_labels.view(-1), reduction='mean')
-
-      optimizer.zero_grad()
 
       if getattr(args, "use_rdrop", False):
         logits1 = model(b_ids, b_mask)
