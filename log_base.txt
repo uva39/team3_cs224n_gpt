@@ -1,0 +1,554 @@
+//////////////////////////////////////////
+START LAST LAYER BASELINE
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/sst.pt
+Epoch 0: train loss :: 2.195, train acc :: 0.405, dev acc :: 0.400
+Epoch 1: train loss :: 1.436, train acc :: 0.418, dev acc :: 0.395
+save the model to checkpoints/sst.pt
+Epoch 2: train loss :: 1.378, train acc :: 0.446, dev acc :: 0.402
+Epoch 3: train loss :: 1.342, train acc :: 0.435, dev acc :: 0.400
+save the model to checkpoints/sst.pt
+Epoch 4: train loss :: 1.318, train acc :: 0.454, dev acc :: 0.430
+Epoch 5: train loss :: 1.318, train acc :: 0.440, dev acc :: 0.423
+Epoch 6: train loss :: 1.295, train acc :: 0.467, dev acc :: 0.426
+save the model to checkpoints/sst.pt
+Epoch 7: train loss :: 1.284, train acc :: 0.491, dev acc :: 0.442
+save the model to checkpoints/sst.pt
+Epoch 8: train loss :: 1.279, train acc :: 0.491, dev acc :: 0.452
+save the model to checkpoints/sst.pt
+Epoch 9: train loss :: 1.273, train acc :: 0.493, dev acc :: 0.457
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.457
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/cfimdb.pt
+Epoch 0: train loss :: 0.744, train acc :: 0.763, dev acc :: 0.747
+save the model to checkpoints/cfimdb.pt
+Epoch 1: train loss :: 0.541, train acc :: 0.785, dev acc :: 0.755
+save the model to checkpoints/cfimdb.pt
+Epoch 2: train loss :: 0.485, train acc :: 0.834, dev acc :: 0.820
+Epoch 3: train loss :: 0.431, train acc :: 0.701, dev acc :: 0.686
+Epoch 4: train loss :: 0.409, train acc :: 0.803, dev acc :: 0.796
+save the model to checkpoints/cfimdb.pt
+Epoch 5: train loss :: 0.406, train acc :: 0.879, dev acc :: 0.829
+save the model to checkpoints/cfimdb.pt
+Epoch 6: train loss :: 0.386, train acc :: 0.871, dev acc :: 0.853
+Epoch 7: train loss :: 0.388, train acc :: 0.856, dev acc :: 0.824
+Epoch 8: train loss :: 0.378, train acc :: 0.866, dev acc :: 0.849
+save the model to checkpoints/cfimdb.pt
+Epoch 9: train loss :: 0.368, train acc :: 0.887, dev acc :: 0.865
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.865
+
+training and test process is end
+
+//////////////////////////////////////////
+START FULL MODEL BASELINE_1
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/sst.pt
+Epoch 0: train loss :: 2.318, train acc :: 0.271, dev acc :: 0.239
+save the model to checkpoints/sst.pt
+Epoch 1: train loss :: 1.623, train acc :: 0.286, dev acc :: 0.253
+save the model to checkpoints/sst.pt
+Epoch 2: train loss :: 1.573, train acc :: 0.302, dev acc :: 0.265
+save the model to checkpoints/sst.pt
+Epoch 3: train loss :: 1.531, train acc :: 0.365, dev acc :: 0.320
+save the model to checkpoints/sst.pt
+Epoch 4: train loss :: 1.391, train acc :: 0.472, dev acc :: 0.423
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.423
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/cfimdb.pt
+Epoch 0: train loss :: 0.805, train acc :: 0.818, dev acc :: 0.808
+save the model to checkpoints/cfimdb.pt
+Epoch 1: train loss :: 0.182, train acc :: 0.972, dev acc :: 0.939
+Epoch 2: train loss :: 0.094, train acc :: 0.939, dev acc :: 0.890
+save the model to checkpoints/cfimdb.pt
+Epoch 3: train loss :: 0.057, train acc :: 0.997, dev acc :: 0.959
+Epoch 4: train loss :: 0.035, train acc :: 0.998, dev acc :: 0.955
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.959
+
+training and test process is end
+
+//////////////////////////////////////////
+START FULL MODEL BASELINE_2
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/sst.pt
+Epoch 0: train loss :: 1.981, train acc :: 0.285, dev acc :: 0.262
+save the model to checkpoints/sst.pt
+Epoch 1: train loss :: 1.564, train acc :: 0.318, dev acc :: 0.292
+save the model to checkpoints/sst.pt
+Epoch 2: train loss :: 1.399, train acc :: 0.465, dev acc :: 0.418
+save the model to checkpoints/sst.pt
+Epoch 3: train loss :: 1.196, train acc :: 0.548, dev acc :: 0.475
+Epoch 4: train loss :: 1.097, train acc :: 0.590, dev acc :: 0.473
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.475
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/cfimdb.pt
+Epoch 0: train loss :: 0.565, train acc :: 0.954, dev acc :: 0.910
+save the model to checkpoints/cfimdb.pt
+Epoch 1: train loss :: 0.107, train acc :: 0.988, dev acc :: 0.955
+Epoch 2: train loss :: 0.069, train acc :: 0.994, dev acc :: 0.955
+save the model to checkpoints/cfimdb.pt
+Epoch 3: train loss :: 0.039, train acc :: 0.996, dev acc :: 0.959
+save the model to checkpoints/cfimdb.pt
+Epoch 4: train loss :: 0.015, train acc :: 0.998, dev acc :: 0.971
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.971
+
+training and test process is end
+
+//////////////////////////////////////////
+ALL BASELINE EXPERIMENTS DONE
+//////////////////////////////////////////
+//////////////////////////////////////////
+START LAST LAYER BASELINE
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/sst.pt
+Epoch 0: train loss :: 1.869, train acc :: 0.398, dev acc :: 0.387
+save the model to checkpoints/sst.pt
+Epoch 1: train loss :: 1.480, train acc :: 0.430, dev acc :: 0.413
+Epoch 2: train loss :: 1.380, train acc :: 0.401, dev acc :: 0.376
+save the model to checkpoints/sst.pt
+Epoch 3: train loss :: 1.329, train acc :: 0.444, dev acc :: 0.418
+save the model to checkpoints/sst.pt
+Epoch 4: train loss :: 1.314, train acc :: 0.480, dev acc :: 0.455
+Epoch 5: train loss :: 1.296, train acc :: 0.479, dev acc :: 0.446
+Epoch 6: train loss :: 1.287, train acc :: 0.473, dev acc :: 0.425
+Epoch 7: train loss :: 1.292, train acc :: 0.454, dev acc :: 0.431
+Epoch 8: train loss :: 1.274, train acc :: 0.482, dev acc :: 0.447
+Epoch 9: train loss :: 1.268, train acc :: 0.472, dev acc :: 0.421
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.455
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/cfimdb.pt
+Epoch 0: train loss :: 0.709, train acc :: 0.753, dev acc :: 0.718
+save the model to checkpoints/cfimdb.pt
+Epoch 1: train loss :: 0.528, train acc :: 0.736, dev acc :: 0.731
+save the model to checkpoints/cfimdb.pt
+Epoch 2: train loss :: 0.482, train acc :: 0.843, dev acc :: 0.824
+Epoch 3: train loss :: 0.442, train acc :: 0.839, dev acc :: 0.808
+save the model to checkpoints/cfimdb.pt
+Epoch 4: train loss :: 0.421, train acc :: 0.865, dev acc :: 0.837
+Epoch 5: train loss :: 0.423, train acc :: 0.862, dev acc :: 0.829
+Epoch 6: train loss :: 0.387, train acc :: 0.821, dev acc :: 0.743
+Epoch 7: train loss :: 0.387, train acc :: 0.861, dev acc :: 0.804
+Epoch 8: train loss :: 0.363, train acc :: 0.865, dev acc :: 0.808
+Epoch 9: train loss :: 0.366, train acc :: 0.864, dev acc :: 0.796
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.837
+
+training and test process is end
+
+//////////////////////////////////////////
+START FULL MODEL BASELINE_1
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/sst.pt
+Epoch 0: train loss :: 1.833, train acc :: 0.330, dev acc :: 0.318
+save the model to checkpoints/sst.pt
+Epoch 1: train loss :: 1.552, train acc :: 0.385, dev acc :: 0.361
+save the model to checkpoints/sst.pt
+Epoch 2: train loss :: 1.395, train acc :: 0.466, dev acc :: 0.436
+save the model to checkpoints/sst.pt
+Epoch 3: train loss :: 1.221, train acc :: 0.541, dev acc :: 0.469
+save the model to checkpoints/sst.pt
+Epoch 4: train loss :: 1.137, train acc :: 0.563, dev acc :: 0.482
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.482
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/cfimdb.pt
+Epoch 0: train loss :: 0.439, train acc :: 0.945, dev acc :: 0.910
+save the model to checkpoints/cfimdb.pt
+Epoch 1: train loss :: 0.118, train acc :: 0.982, dev acc :: 0.947
+save the model to checkpoints/cfimdb.pt
+Epoch 2: train loss :: 0.061, train acc :: 0.994, dev acc :: 0.959
+save the model to checkpoints/cfimdb.pt
+Epoch 3: train loss :: 0.042, train acc :: 0.998, dev acc :: 0.976
+Epoch 4: train loss :: 0.037, train acc :: 0.998, dev acc :: 0.959
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.976
+
+training and test process is end
+
+//////////////////////////////////////////
+START FULL MODEL BASELINE_2
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/sst.pt
+Epoch 0: train loss :: 1.709, train acc :: 0.337, dev acc :: 0.333
+save the model to checkpoints/sst.pt
+Epoch 1: train loss :: 1.429, train acc :: 0.476, dev acc :: 0.411
+save the model to checkpoints/sst.pt
+Epoch 2: train loss :: 1.190, train acc :: 0.559, dev acc :: 0.485
+Epoch 3: train loss :: 1.085, train acc :: 0.602, dev acc :: 0.480
+save the model to checkpoints/sst.pt
+Epoch 4: train loss :: 1.000, train acc :: 0.645, dev acc :: 0.491
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.491
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/cfimdb.pt
+Epoch 0: train loss :: 0.331, train acc :: 0.981, dev acc :: 0.959
+save the model to checkpoints/cfimdb.pt
+Epoch 1: train loss :: 0.085, train acc :: 0.992, dev acc :: 0.976
+Epoch 2: train loss :: 0.058, train acc :: 0.996, dev acc :: 0.971
+Epoch 3: train loss :: 0.026, train acc :: 0.981, dev acc :: 0.963
+Epoch 4: train loss :: 0.030, train acc :: 0.997, dev acc :: 0.967
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.976
+
+training and test process is end
+
+//////////////////////////////////////////
+ALL BASELINE EXPERIMENTS DONE
+//////////////////////////////////////////
+//////////////////////////////////////////
+START LAST LAYER BASELINE
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/sst.pt
+Epoch 0: train loss :: 1.650, train acc :: 0.395, dev acc :: 0.396
+Epoch 1: train loss :: 1.413, train acc :: 0.390, dev acc :: 0.376
+Epoch 2: train loss :: 1.365, train acc :: 0.423, dev acc :: 0.395
+save the model to checkpoints/sst.pt
+Epoch 3: train loss :: 1.325, train acc :: 0.474, dev acc :: 0.453
+Epoch 4: train loss :: 1.315, train acc :: 0.456, dev acc :: 0.444
+Epoch 5: train loss :: 1.293, train acc :: 0.476, dev acc :: 0.450
+save the model to checkpoints/sst.pt
+Epoch 6: train loss :: 1.296, train acc :: 0.488, dev acc :: 0.464
+Epoch 7: train loss :: 1.278, train acc :: 0.474, dev acc :: 0.439
+save the model to checkpoints/sst.pt
+Epoch 8: train loss :: 1.277, train acc :: 0.495, dev acc :: 0.473
+Epoch 9: train loss :: 1.263, train acc :: 0.486, dev acc :: 0.441
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.473
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/cfimdb.pt
+Epoch 0: train loss :: 0.713, train acc :: 0.760, dev acc :: 0.747
+save the model to checkpoints/cfimdb.pt
+Epoch 1: train loss :: 0.519, train acc :: 0.835, dev acc :: 0.820
+Epoch 2: train loss :: 0.462, train acc :: 0.714, dev acc :: 0.722
+save the model to checkpoints/cfimdb.pt
+Epoch 3: train loss :: 0.448, train acc :: 0.859, dev acc :: 0.841
+Epoch 4: train loss :: 0.439, train acc :: 0.852, dev acc :: 0.800
+Epoch 5: train loss :: 0.398, train acc :: 0.861, dev acc :: 0.833
+save the model to checkpoints/cfimdb.pt
+Epoch 6: train loss :: 0.385, train acc :: 0.871, dev acc :: 0.849
+save the model to checkpoints/cfimdb.pt
+Epoch 7: train loss :: 0.380, train acc :: 0.871, dev acc :: 0.865
+Epoch 8: train loss :: 0.362, train acc :: 0.838, dev acc :: 0.767
+Epoch 9: train loss :: 0.354, train acc :: 0.885, dev acc :: 0.861
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.865
+
+training and test process is end
+
+//////////////////////////////////////////
+START FULL MODEL BASELINE_1
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/sst.pt
+Epoch 0: train loss :: 1.745, train acc :: 0.340, dev acc :: 0.328
+save the model to checkpoints/sst.pt
+Epoch 1: train loss :: 1.433, train acc :: 0.454, dev acc :: 0.417
+save the model to checkpoints/sst.pt
+Epoch 2: train loss :: 1.234, train acc :: 0.523, dev acc :: 0.460
+save the model to checkpoints/sst.pt
+Epoch 3: train loss :: 1.136, train acc :: 0.564, dev acc :: 0.496
+Epoch 4: train loss :: 1.077, train acc :: 0.592, dev acc :: 0.484
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.496
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/cfimdb.pt
+Epoch 0: train loss :: 0.978, train acc :: 0.784, dev acc :: 0.788
+save the model to checkpoints/cfimdb.pt
+Epoch 1: train loss :: 0.215, train acc :: 0.974, dev acc :: 0.959
+Epoch 2: train loss :: 0.104, train acc :: 0.978, dev acc :: 0.947
+save the model to checkpoints/cfimdb.pt
+Epoch 3: train loss :: 0.068, train acc :: 0.991, dev acc :: 0.967
+save the model to checkpoints/cfimdb.pt
+Epoch 4: train loss :: 0.037, train acc :: 0.997, dev acc :: 0.976
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.976
+
+training and test process is end
+
+//////////////////////////////////////////
+START FULL MODEL BASELINE_2
+//////////////////////////////////////////
+
+---------------------------------------------------
+Training Sentiment Classifier on SST...
+---------------------------------------------------
+load 8544 data from data/ids-sst-train.csv
+load 1101 data from data/ids-sst-dev.csv
+save the model to checkpoints/sst.pt
+Epoch 0: train loss :: 1.642, train acc :: 0.382, dev acc :: 0.365
+save the model to checkpoints/sst.pt
+Epoch 1: train loss :: 1.267, train acc :: 0.535, dev acc :: 0.483
+Epoch 2: train loss :: 1.112, train acc :: 0.563, dev acc :: 0.481
+save the model to checkpoints/sst.pt
+Epoch 3: train loss :: 1.024, train acc :: 0.632, dev acc :: 0.510
+save the model to checkpoints/sst.pt
+Epoch 4: train loss :: 0.947, train acc :: 0.680, dev acc :: 0.511
+
+---------------------------------------------------
+Evaluating on SST...
+---------------------------------------------------
+load model from checkpoints/sst.pt
+load 1101 data from data/ids-sst-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.511
+
+training and test process is end
+
+
+---------------------------------------------------
+Training Sentiment Classifier on cfimdb...
+---------------------------------------------------
+load 1707 data from data/ids-cfimdb-train.csv
+load 245 data from data/ids-cfimdb-dev.csv
+save the model to checkpoints/cfimdb.pt
+Epoch 0: train loss :: 0.612, train acc :: 0.971, dev acc :: 0.959
+save the model to checkpoints/cfimdb.pt
+Epoch 1: train loss :: 0.111, train acc :: 0.991, dev acc :: 0.971
+Epoch 2: train loss :: 0.079, train acc :: 0.996, dev acc :: 0.963
+Epoch 3: train loss :: 0.043, train acc :: 0.999, dev acc :: 0.955
+Epoch 4: train loss :: 0.025, train acc :: 0.991, dev acc :: 0.931
+
+---------------------------------------------------
+Evaluating on cfimdb...
+---------------------------------------------------
+load model from checkpoints/cfimdb.pt
+load 245 data from data/ids-cfimdb-dev.csv
+DONE DEV
+DONE Test
+dev acc :: 0.971
+
+training and test process is end
+
+//////////////////////////////////////////
+ALL BASELINE EXPERIMENTS DONE
+//////////////////////////////////////////
