@@ -1,0 +1,4 @@
+dataset,epoch,seed,fine_tune_mode,lr,batch_size,hidden_dropout_prob,train_loss,train_acc,train_f1,dev_acc,dev_f1,best_dev_acc,is_best,checkpoint_path
+cfimdb,0,2,full-model,2e-05,4,0.2,0.734729493936913,0.974223784417106,0.9742191039775925,0.9551020408163265,0.9550750971011353,0.9551020408163265,True,checkpoints/sweep-CFIMDB-epoch3-check-seed2-lr2em5-ep3-alpha1p0-drop0p2-cfimdb.pt
+cfimdb,1,2,full-model,2e-05,4,0.2,0.19232038836845133,0.9917984768599882,0.9917984515278808,0.9714285714285714,0.9714266673331,0.9714285714285714,True,checkpoints/sweep-CFIMDB-epoch3-check-seed2-lr2em5-ep3-alpha1p0-drop0p2-cfimdb.pt
+cfimdb,2,2,full-model,2e-05,4,0.2,0.09603022877021493,0.9917984768599882,0.9917984515278808,0.9714285714285714,0.9714266673331,0.9714285714285714,False,checkpoints/sweep-CFIMDB-epoch3-check-seed2-lr2em5-ep3-alpha1p0-drop0p2-cfimdb.pt
