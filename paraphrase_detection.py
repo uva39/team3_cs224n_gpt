@@ -12,6 +12,8 @@ trains and evaluates your ParaphraseGPT model and writes the required submission
 '''
 
 import argparse
+import csv
+import os
 import random
 import torch
 
@@ -21,6 +23,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from sklearn.metrics import accuracy_score, f1_score
 
 from datasets import (
   ParaphraseDetectionDataset,
@@ -51,6 +54,7 @@ class ParaphraseGPT(nn.Module):
   def __init__(self, args):
     super().__init__()
     self.gpt = GPT2Model.from_pretrained(model=args.model_size, d=args.d, l=args.l, num_heads=args.num_heads)
+    self.dropout = nn.Dropout(args.dropout)
     self.paraphrase_detection_head = nn.Linear(args.d, 2)  # Paraphrase detection has two outputs: 1 (yes) or 0 (no).
 
     # By default, fine-tune the full model.
@@ -73,7 +77,7 @@ class ParaphraseGPT(nn.Module):
     'Takes a batch of sentences and produces embeddings for them.'
     gpt_out = self.gpt(input_ids, attention_mask)
     last_hidden = gpt_out['last_token']
-    logits = self.gpt.hidden_state_to_token(last_hidden)
+    logits = self.paraphrase_detection_head(self.dropout(last_hidden))
     return logits
 
 
@@ -90,6 +94,43 @@ def save_model(model, optimizer, args, filepath):
 
   torch.save(save_info, filepath)
   print(f"save the model to {filepath}")
+
+
+def log_epoch_metrics(args, epoch, train_loss, train_acc, train_f1, dev_acc, dev_f1, best_dev_acc, is_best):
+  fieldnames = [
+    'dataset', 'epoch', 'seed', 'model_size', 'lr', 'batch_size', 'weight_decay', 'dropout',
+    'train_loss', 'train_acc', 'train_f1', 'dev_acc', 'dev_f1',
+    'best_dev_acc', 'is_best', 'checkpoint_path'
+  ]
+  row = {
+    'dataset': 'quora',
+    'epoch': epoch,
+    'seed': args.seed,
+    'model_size': args.model_size,
+    'lr': args.lr,
+    'batch_size': args.batch_size,
+    'weight_decay': args.weight_decay,
+    'dropout': args.dropout,
+    'train_loss': train_loss,
+    'train_acc': train_acc,
+    'train_f1': train_f1,
+    'dev_acc': dev_acc,
+    'dev_f1': dev_f1,
+    'best_dev_acc': best_dev_acc,
+    'is_best': is_best,
+    'checkpoint_path': args.filepath,
+  }
+
+  metrics_dir = os.path.dirname(args.metrics_out)
+  if metrics_dir:
+    os.makedirs(metrics_dir, exist_ok=True)
+
+  write_header = not os.path.exists(args.metrics_out)
+  with open(args.metrics_out, 'a', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    if write_header:
+      writer.writeheader()
+    writer.writerow(row)
 
 
 def train(args):
@@ -112,14 +153,20 @@ def train(args):
   model = model.to(device)
 
   lr = args.lr
-  optimizer = AdamW(model.parameters(), lr=lr, weight_decay=0.)
+  optimizer = AdamW(model.parameters(), lr=lr, weight_decay=args.weight_decay)
   best_dev_acc = 0
+
+  checkpoint_dir = os.path.dirname(args.filepath)
+  if checkpoint_dir:
+    os.makedirs(checkpoint_dir, exist_ok=True)
 
   # Run for the specified number of epochs.
   for epoch in range(args.epochs):
     model.train()
     train_loss = 0
     num_batches = 0
+    train_y_true = []
+    train_y_pred = []
     for batch in tqdm(para_train_dataloader, desc=f'train-{epoch}', disable=TQDM_DISABLE):
       # Get the input and move it to the gpu (I do not recommend training this model on CPU).
       b_ids, b_mask, labels = batch['token_ids'], batch['attention_mask'], batch['labels'].flatten()
@@ -137,23 +184,35 @@ def train(args):
 
       train_loss += loss.item()
       num_batches += 1
+      train_y_true.extend(labels.detach().cpu().tolist())
+      train_y_pred.extend(preds.detach().cpu().tolist())
 
     train_loss = train_loss / num_batches
+    train_acc = accuracy_score(train_y_true, train_y_pred)
+    train_f1 = f1_score(train_y_true, train_y_pred, average='macro')
 
+    previous_best_dev_acc = best_dev_acc
     dev_acc, dev_f1, *_ = model_eval_paraphrase(para_dev_dataloader, model, device)
+    is_best = dev_acc > best_dev_acc
 
-    if dev_acc > best_dev_acc:
+    if is_best:
       best_dev_acc = dev_acc
       save_model(model, optimizer, args, args.filepath)
 
-    print(f"Epoch {epoch}: train loss :: {train_loss :.3f}, dev acc :: {dev_acc :.3f}")
+    log_epoch_metrics(args, epoch, train_loss, train_acc, train_f1, dev_acc, dev_f1, previous_best_dev_acc, is_best)
+
+    print(
+      f"Epoch {epoch}: train loss :: {train_loss :.3f}, train acc :: {train_acc :.3f}, "
+      f"train f1 :: {train_f1 :.3f}, dev acc :: {dev_acc :.3f}, dev f1 :: {dev_f1 :.3f}, "
+      f"is best :: {is_best}"
+    )
 
 
 @torch.no_grad()
 def test(args):
   """Evaluate your model on the dev and test datasets; save the predictions to disk."""
   device = torch.device('cuda') if args.use_gpu else torch.device('cpu')
-  saved = torch.load(args.filepath)
+  saved = torch.load(args.filepath, weights_only=False)
 
   model = ParaphraseGPT(saved['args'])
   model.load_state_dict(saved['model'])
@@ -195,6 +254,10 @@ def get_args():
   parser.add_argument("--para_test", type=str, default="data/quora-test-student.csv")
   parser.add_argument("--para_dev_out", type=str, default="predictions/para-dev-output.csv")
   parser.add_argument("--para_test_out", type=str, default="predictions/para-test-output.csv")
+  parser.add_argument("--metrics_out", type=str, default="logs/paraphrase_experiments.csv")
+  parser.add_argument("--checkpoint_dir", type=str, default="checkpoints")
+  parser.add_argument("--experiment_name", type=str, default="base-gpt2")
+  parser.add_argument("--filepath", type=str, default=None)
 
   parser.add_argument("--seed", type=int, default=11711)
   parser.add_argument("--epochs", type=int, default=10)
@@ -202,6 +265,8 @@ def get_args():
 
   parser.add_argument("--batch_size", help='sst: 64, cfimdb: 8 can fit a 12GB GPU', type=int, default=8)
   parser.add_argument("--lr", type=float, help="learning rate", default=1e-5)
+  parser.add_argument("--weight_decay", type=float, default=0.)
+  parser.add_argument("--dropout", type=float, default=0.)
   parser.add_argument("--model_size", type=str,
                       help="The model size as specified on hugging face. DO NOT use the xl model.",
                       choices=['gpt2', 'gpt2-medium', 'gpt2-large'], default='gpt2')
@@ -231,7 +296,11 @@ def add_arguments(args):
 
 if __name__ == "__main__":
   args = get_args()
-  args.filepath = f'{args.epochs}-{args.lr}-paraphrase.pt'  # Save path.
+  if args.filepath is None:
+    args.filepath = os.path.join(
+      args.checkpoint_dir,
+      f'{args.experiment_name}-lr{args.lr:g}-ep{args.epochs}-bs{args.batch_size}-wd{args.weight_decay:g}-drop{args.dropout:g}-quora.pt'
+    )
   seed_everything(args.seed)  # Fix the seed for reproducibility.
   train(args)
   test(args)

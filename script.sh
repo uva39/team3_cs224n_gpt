@@ -3,6 +3,10 @@
 ENV_NAME="cs224n_dfp"
 ENV_FILE="env.yml"
 VENV_DIR=".venv"
+PYTORCH_INDEX_URL="https://download.pytorch.org/whl/cu124"
+TORCH_SPEC="torch==2.6.0+cu124"
+TORCHVISION_SPEC="torchvision==0.21.0+cu124"
+TORCHAUDIO_SPEC="torchaudio==2.6.0+cu124"
 
 is_sourced() {
   [[ "${BASH_SOURCE[0]}" != "${0}" ]]
@@ -60,12 +64,42 @@ install_with_conda() {
   conda activate "${ENV_NAME}" || return 1
 }
 
+install_python_venv_package() {
+  local venv_log="$1"
+  local py_version
+  local venv_package
+
+  if ! grep -q "ensurepip is not" "${venv_log}"; then
+    return 1
+  fi
+
+  if ! command -v apt-get >/dev/null 2>&1 || [[ "$(id -u)" -ne 0 ]]; then
+    cat "${venv_log}" >&2
+    warn "Install python3-venv, then run: source script.sh"
+    return 1
+  fi
+
+  py_version="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" || return 1
+  venv_package="python${py_version}-venv"
+
+  say "Installing missing OS package: ${venv_package}"
+  apt-get update || return 1
+  apt-get install -y "${venv_package}" || return 1
+}
+
 create_venv() {
   local venv_log
   venv_log="$(mktemp)" || return 1
 
   python3 -m venv --clear "${VENV_DIR}" >"${venv_log}" 2>&1
   local venv_status=$?
+  if [[ "${venv_status}" -ne 0 ]]; then
+    if install_python_venv_package "${venv_log}"; then
+      python3 -m venv --clear "${VENV_DIR}" >"${venv_log}" 2>&1
+      venv_status=$?
+    fi
+  fi
+
   if [[ "${venv_status}" -ne 0 ]]; then
     cat "${venv_log}" >&2
     rm -f "${venv_log}"
@@ -77,11 +111,12 @@ create_venv() {
 }
 
 venv_deps_installed() {
-  python - <<'PY' >/dev/null 2>&1
+  python - <<'PYCHECK'
 import torch
 import transformers
 import sklearn
-PY
+assert torch.__version__.startswith("2.6.0+cu124"), torch.__version__
+PYCHECK
 }
 
 install_with_venv() {
@@ -97,7 +132,7 @@ install_with_venv() {
   # shellcheck source=/dev/null
   source "${VENV_DIR}/bin/activate" || return 1
 
-  if venv_deps_installed; then
+  if venv_deps_installed >/dev/null 2>&1; then
     say "Python dependencies already installed"
     return 0
   fi
@@ -107,7 +142,21 @@ install_with_venv() {
 
   local req_file
   req_file="$(mktemp)" || return 1
-  awk '/^[[:space:]]+- pip:/{in_pip=1; next} in_pip && /^[[:space:]]+- /{sub(/^[[:space:]]+- /, ""); print}' "${ENV_FILE}" > "${req_file}" || return 1
+  awk '
+    /^[[:space:]]+- pip:/{in_pip=1; next}
+    in_pip && /^[[:space:]]+- /{
+      sub(/^[[:space:]]+- /, "")
+      if ($0 !~ /^(torch|torchvision|torchaudio)([=<> ]|$)/) print
+    }
+  ' "${ENV_FILE}" > "${req_file}" || return 1
+
+  say "Installing PyTorch packages for CUDA 12.4"
+  python -m pip install \
+    "${TORCH_SPEC}" \
+    "${TORCHVISION_SPEC}" \
+    "${TORCHAUDIO_SPEC}" \
+    --index-url "${PYTORCH_INDEX_URL}" || return 1
+
   python -m pip install -r "${req_file}"
   local pip_status=$?
   rm -f "${req_file}"
@@ -118,14 +167,14 @@ print_checks() {
   say "Checking required commands"
   python --version || return 1
   python -m pip --version || return 1
-  python - <<'PY'
+  python - <<'PYCHECK'
 import torch
 import transformers
 import sklearn
 print(f"torch {torch.__version__}")
 print(f"transformers {transformers.__version__}")
 print(f"cuda available: {torch.cuda.is_available()}")
-PY
+PYCHECK
 }
 
 print_project_commands() {
@@ -143,7 +192,7 @@ Run these after setup:
 If you are on CPU, omit --use_gpu.
 CMDS
 
-  if ! is_sourced || [[ "$(basename "$0")" == "setup.sh" ]]; then
+  if ! is_sourced; then
     cat <<'NOTE'
 
 Note: this script was executed in a child shell.
