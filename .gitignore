@@ -42,3 +42,4 @@ Thumbs.db
 data/json
 predictions/*.csv
 log.txt
+release_best_model/
