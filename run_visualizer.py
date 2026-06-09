@@ -21,7 +21,7 @@ PathLike = Union[str, Path]
 DEFAULT_CATEGORICAL_DEFAULTS = {
     "fine_tune_mode": "not use",
     "pooling_config": "last",  # empty pooling_config means last pooling
-    "use_simple_classifier": "not use",
+    "classifier_head": "Simple head",
     "use_rdrop": "not use",
     "rdrop_alpha": "not use",
     "weight_decay": "not use",
@@ -50,6 +50,25 @@ DEFAULT_NUMERIC_COLS = [
     "max_grad_norm",
     "warmup_ratio",
 ]
+
+
+def infer_classifier_head(row):
+    value = str(row.get("use_simple_classifier", "")).strip().lower()
+    filename = str(row.get("filename", "")).lower()
+    path = str(row.get("path", "")).lower()
+
+    if value == "true":
+        return "simple head"
+    if value == "false":
+        return "MLP head"
+
+    # 예전 실험 JSON에 use_simple_classifier가 없거나 비어 있는 경우 보정
+    if "simple" in filename or "simple" in path or "base" in filename or "base" in path:
+        return "simple head"
+    if "mlp" in filename or "mlp" in path:
+        return "MLP head"
+
+    return "unknown"
 
 
 def clean_category(series: pd.Series, default: str = "not use") -> pd.Series:
@@ -159,19 +178,21 @@ def prepare_run_dataframe(
         df["fine_tune_type"] = "not use"
 
     df["rdrop_use"] = _as_bool_use(df["use_rdrop"]) if "use_rdrop" in df.columns else "no use"
-    df["simple_classifier_use"] = _as_bool_use(df["use_simple_classifier"]) if "use_simple_classifier" in df.columns else "no use"
+#    df["simple_classifier_use"] = _as_bool_use(df["use_simple_classifier"]) if "use_simple_classifier" in df.columns else "no use"
+    df["classifier_head"] = df.apply(infer_classifier_head, axis=1)
     df["warmup_use"] = _numeric_option_to_use(df["warmup_ratio"]) if "warmup_ratio" in df.columns else "no use"
     df["weight_decay_use"] = _numeric_option_to_use(df["weight_decay"]) if "weight_decay" in df.columns else "no use"
     df["grad_clip_use"] = _numeric_option_to_use(df["max_grad_norm"]) if "max_grad_norm" in df.columns else "no use"
 
     if "unuse_schedule" in df.columns:
-        s = clean_category(df["unuse_schedule"]).str.lower()
+        s = clean_category(df["unuse_schedule"], default="false").str.lower()
         df["scheduler_use"] = np.select(
             [s == "true", s == "false"],
             ["no use", "use"],
-            default="no use",
+            default="use",
         )
     else:
+        # run_classifier.py 기준 기본값은 unuse_schedule=False 이므로 scheduler 사용
         df["scheduler_use"] = "no use"
 
     df["experiment_group"] = df.apply(infer_experiment_group, axis=1)
@@ -748,7 +769,7 @@ def run_default_visualizations(
         "rdrop_use",
         "warmup_use",
         "scheduler_use",
-        "simple_classifier_use",
+        "classifier_head",
         "pooling_config_cat",
     ]
 
@@ -764,10 +785,246 @@ def run_default_visualizations(
         "warmup_use",
         "scheduler_use",
         "pooling_config_cat",
-        "simple_classifier_use",
+        "classifier_head",
         "weight_decay_use",
         "grad_clip_use",
     ]:
         plot_box_by_option_and_finetune(df, option_col, metric=metric, output_dir=output_dir)
 
     plot_acc_f1_gap(df, output_dir=output_dir)
+
+
+
+#===============================================
+#===============================================
+
+def add_experiment_scores(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add interpretable experiment scores.
+
+    stabilization_score:
+      +1 weight decay
+      +1 gradient clipping
+      +1 scheduler/warmup
+      +1 R-Drop
+
+    architecture_score:
+      +1 MLP classifier head
+      +1 last_mean pooling
+
+    balanced_score:
+      (best_dev_acc + best_dev_f1) / 2
+    """
+    df = df.copy()
+
+    def is_use_col(col):
+        if col not in df.columns:
+            return pd.Series(False, index=df.index)
+        return df[col].astype(str).str.lower().eq("use")
+
+    # Stabilization / regularization score
+    df["stabilization_score"] = 0
+    df["stabilization_score"] += is_use_col("weight_decay_use").astype(int)
+    df["stabilization_score"] += is_use_col("grad_clip_use").astype(int)
+    df["stabilization_score"] += is_use_col("scheduler_use").astype(int)
+    df["stabilization_score"] += is_use_col("rdrop_use").astype(int)
+
+    # Classifier head label
+    if "use_simple_classifier" in df.columns:
+        simple = df["use_simple_classifier"].astype(str).str.lower()
+        df["classifier_head"] = np.select(
+            [simple.eq("true"), simple.eq("false")],
+            ["simple head", "MLP head"],
+            default="unknown",
+        )
+    else:
+        df["classifier_head"] = "unknown"
+
+    # Architecture score
+    df["architecture_score"] = 0
+    df["architecture_score"] += df["classifier_head"].eq("MLP head").astype(int)
+
+    if "pooling_config" in df.columns:
+        pooling = clean_category(df["pooling_config"], default="last").str.lower()
+    elif "pooling_config_cat" in df.columns:
+        pooling = clean_category(df["pooling_config_cat"], default="last").str.lower()
+    else:
+        pooling = pd.Series(["last"] * len(df), index=df.index)
+
+    df["pooling_family"] = pooling
+    df["architecture_score"] += pooling.eq("last_mean").astype(int)
+
+    # Mean pooling alone is better treated as a separate representation variant.
+    df["uses_mean_only_pooling"] = pooling.eq("mean")
+
+    if "best_dev_acc" in df.columns and "best_dev_f1" in df.columns:
+        df["balanced_score"] = (df["best_dev_acc"] + df["best_dev_f1"]) / 2
+
+    df["total_upgrade_score"] = df["stabilization_score"] + df["architecture_score"]
+
+    return df
+
+
+def plot_upgrade_score_heatmap(
+    df: pd.DataFrame,
+    metric: str = "balanced_score",
+    aggfunc: str = "max",
+    exclude_mean_only_pooling: bool = True,
+    output_dir: Optional[PathLike] = None,
+):
+    """
+    Heatmap of performance by stabilization score and architecture score.
+
+    Rows: stabilization_score
+    Columns: architecture_score
+    Cell: aggregated metric
+    """
+    df = add_experiment_scores(df)
+
+    if exclude_mean_only_pooling and "uses_mean_only_pooling" in df.columns:
+        df = df[~df["uses_mean_only_pooling"]].copy()
+
+    for dataset_name, sub in df.groupby("dataset"):
+        sub = sub.dropna(subset=[metric, "stabilization_score", "architecture_score"]).copy()
+        if len(sub) == 0:
+            continue
+
+        pivot = sub.pivot_table(
+            index="stabilization_score",
+            columns="architecture_score",
+            values=metric,
+            aggfunc=aggfunc,
+        ).sort_index(ascending=True)
+
+        fig, ax = plt.subplots(figsize=(7, 5.5))
+        im = ax.imshow(pivot.values, aspect="auto")
+
+        ax.set_xticks(np.arange(len(pivot.columns)))
+        ax.set_yticks(np.arange(len(pivot.index)))
+        ax.set_xticklabels([str(x) for x in pivot.columns])
+        ax.set_yticklabels([str(y) for y in pivot.index])
+
+        ax.set_xlabel("Architecture score")
+        ax.set_ylabel("Stabilization score")
+        ax.set_title(f"{dataset_name}: {aggfunc} {metric} by upgrade scores")
+
+        cbar = fig.colorbar(im, ax=ax)
+        cbar.set_label(metric)
+
+        for i in range(len(pivot.index)):
+            for j in range(len(pivot.columns)):
+                value = pivot.values[i, j]
+                if pd.notna(value):
+                    ax.text(j, i, f"{value:.4f}", ha="center", va="center", fontsize=9)
+
+        save_path = None
+        if output_dir is not None:
+            save_path = Path(output_dir) / f"{dataset_name}_upgrade_score_heatmap_{metric}_{aggfunc}.png"
+
+        save_or_show(fig, save_path=save_path)
+        
+        
+        
+def plot_score_vs_metric(
+    df: pd.DataFrame,
+    score_col: str = "stabilization_score",
+    metric: str = "balanced_score",
+    output_dir: Optional[PathLike] = None,
+):
+    """
+    Scatter/mean plot for score vs metric.
+    Useful for checking whether stronger stabilization/architecture tends to improve performance.
+    """
+    df = add_experiment_scores(df)
+
+    for dataset_name, sub in df.groupby("dataset"):
+        sub = sub.dropna(subset=[score_col, metric]).copy()
+        if len(sub) == 0:
+            continue
+
+        grouped = (
+            sub.groupby(score_col)[metric]
+            .agg(["mean", "max", "std", "count"])
+            .reset_index()
+            .sort_values(score_col)
+        )
+
+        fig, ax = plt.subplots(figsize=(7.5, 5.5))
+
+        # Scatter all runs
+        jitter = np.random.default_rng(42).normal(0, 0.04, size=len(sub))
+        ax.scatter(
+            sub[score_col] + jitter,
+            sub[metric],
+            alpha=0.45,
+            s=45,
+            edgecolors="black",
+            linewidths=0.3,
+            label="individual runs",
+        )
+
+        # Mean trend
+        ax.plot(
+            grouped[score_col],
+            grouped["mean"],
+            marker="o",
+            linewidth=2,
+            label="mean",
+        )
+
+        # Max trend
+        ax.plot(
+            grouped[score_col],
+            grouped["max"],
+            marker="s",
+            linewidth=2,
+            linestyle="--",
+            label="max",
+        )
+
+        ax.set_xlabel(score_col)
+        ax.set_ylabel(metric)
+        ax.set_title(f"{dataset_name}: {metric} by {score_col}")
+        ax.yaxis.set_major_formatter(PercentFormatter(1.0))
+        ax.grid(True, alpha=0.25)
+        ax.legend()
+
+        save_path = None
+        if output_dir is not None:
+            save_path = Path(output_dir) / f"{dataset_name}_{score_col}_vs_{metric}.png"
+
+        save_or_show(fig, save_path=save_path)
+        
+def run_plus_visualizations(
+    df: pd.DataFrame,
+    output_dir: Optional[PathLike] = None,
+):
+        # Upgrade score visualizations
+    scored_df = add_experiment_scores(df)
+
+    for metric_name in ["best_dev_f1", "balanced_score"]:
+        if metric_name in scored_df.columns:
+            plot_score_vs_metric(
+                scored_df,
+                score_col="stabilization_score",
+                metric=metric_name,
+                output_dir=output_dir,
+            )
+            plot_score_vs_metric(
+                scored_df,
+                score_col="architecture_score",
+                metric=metric_name,
+                output_dir=output_dir,
+            )
+            plot_upgrade_score_heatmap(
+                scored_df,
+                metric=metric_name,
+                aggfunc="max",
+                output_dir=output_dir,
+            )
+            plot_upgrade_score_heatmap(
+                scored_df,
+                metric=metric_name,
+                aggfunc="mean",
+                output_dir=output_dir,
+            )
