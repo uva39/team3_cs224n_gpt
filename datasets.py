@@ -8,6 +8,7 @@ additional sources of data, or if you change how the Quora dataset is processed 
 
 import csv
 
+import json
 import re
 import torch
 
@@ -127,10 +128,26 @@ class SonnetsDataset(Dataset):
     self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
     self.tokenizer.pad_token = self.tokenizer.eos_token
-    self.sonnets = self._load_sonnets(file_path)
+    # ids[i]는 소네트 식별자, sonnets[i]는 학습/생성에 쓰는 텍스트.
+    self.ids, self.sonnets = self._load_sonnets(file_path)
 
   def _load_sonnets(self, file_path):
-    """Reads the file and extracts individual sonnets."""
+    """원본 .txt 또는 전처리된 .json(scripts/prepare_training_json.py 산출물)에서
+    소네트를 읽어 (ids, sonnets)를 반환한다.
+
+    - .json: 실제 소네트 번호(`id`)를 사용하고, 전체 텍스트가 있으면 `text`를,
+      prompt만 있는 held-out/dev 파일이면 `prompt_text`를 텍스트로 쓴다.
+    - .txt : 기존 동작 유지 — 정규식으로 분리하고 위치 인덱스를 id로 쓴다.
+    """
+    if file_path.endswith('.json'):
+      with open(file_path, 'r', encoding='utf-8') as f:
+        payload = json.load(f)
+      ids, sonnets = [], []
+      for ex in payload['examples']:
+        ids.append(ex.get('id', len(ids)))
+        sonnets.append(ex['text'] if 'text' in ex else ex['prompt_text'])
+      return ids, sonnets
+
     with open(file_path, 'r', encoding='utf-8') as f:
       text = f.read()
 
@@ -138,13 +155,15 @@ class SonnetsDataset(Dataset):
     sonnets = re.split(r'\n\s*\d+\s*\n', text)[1:]  # Remove header text
 
     # Strip leading/trailing spaces
-    return [s.strip() for s in sonnets]
+    sonnets = [s.strip() for s in sonnets]
+    ids = list(range(len(sonnets)))  # 기존 동작: 위치 인덱스를 id로 사용.
+    return ids, sonnets
 
   def __len__(self):
     return len(self.sonnets)
 
   def __getitem__(self, idx):
-    return (idx, self.sonnets[idx])
+    return (self.ids[idx], self.sonnets[idx])
 
   def collate_fn(self, all_data):
     idx = [example[0] for example in all_data]

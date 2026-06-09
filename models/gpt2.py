@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.utils.checkpoint import checkpoint
 from transformers import GPT2Model as OpenAIGPT2Model
 
 from config import GPT2Config
@@ -33,6 +34,9 @@ class GPT2Model(GPTPreTrainedModel):
 
     # GPT-2 layers.
     self.gpt_layers = nn.ModuleList([GPT2Layer(config) for _ in range(config.num_hidden_layers)])
+
+    # gradient checkpointing 플래그 (큰 모델을 좁은 VRAM에 적재할 때 activation 메모리 절감).
+    self.gradient_checkpointing = getattr(config, 'gradient_checkpointing', False)
 
     # [CLS] token transformations.
     self.pooler_dense = nn.Linear(config.hidden_size, config.hidden_size)
@@ -73,7 +77,13 @@ class GPT2Model(GPTPreTrainedModel):
     # Pass the hidden states through the encoder layers.
     for i, layer_module in enumerate(self.gpt_layers):
       # Feed the encoding from the last bert_layer to the next.
-      hidden_states = layer_module(hidden_states, extended_attention_mask)
+      if self.gradient_checkpointing and self.training:
+        # activation 을 저장하지 않고 backward 때 재계산 → 메모리 절약(시간은 ↑).
+        # use_reentrant=False 가 최신 권장 방식.
+        hidden_states = checkpoint(layer_module, hidden_states, extended_attention_mask,
+                                   use_reentrant=False)
+      else:
+        hidden_states = layer_module(hidden_states, extended_attention_mask)
 
     return hidden_states
 
@@ -106,10 +116,30 @@ class GPT2Model(GPTPreTrainedModel):
 
 
   @classmethod
-  def from_pretrained(cls, model='gpt2', d=768, l=12, num_heads=12):
+  def from_pretrained(cls, model='gpt2', d=768, l=12, num_heads=12,
+                      hidden_dropout_prob=0.1, attention_probs_dropout_prob=0.1,
+                      gradient_checkpointing=False, init_only=False):
+    # init_only=True: HuggingFace 가중치 로드를 건너뛰고 GPT2Config로 빈 모델만 만든다.
+    # ckpt에서 state_dict로 덮어쓸 거라면 HF 모델 + 우리 모델이 동시에 메모리에 있을
+    # 필요가 없어, ~3GB 메모리 절감 (gpt2-large 기준).
+    if init_only:
+      return GPT2Model(GPT2Config(
+        hidden_size=d, num_hidden_layers=l, num_attention_heads=num_heads,
+        intermediate_size=d*4,
+        hidden_dropout_prob=hidden_dropout_prob,
+        attention_probs_dropout_prob=attention_probs_dropout_prob,
+        gradient_checkpointing=gradient_checkpointing,
+      )).eval()
     gpt_model = OpenAIGPT2Model.from_pretrained(model).eval()
-    our_model = GPT2Model(GPT2Config(hidden_size=d, num_hidden_layers=l,num_attention_heads=num_heads,
-                                     intermediate_size=d*3)).eval()
+    # GPT-2 MLP는 표준적으로 intermediate = 4 * hidden (c_fc: [hidden, 4*hidden]).
+    # 기존 코드는 d*3으로 잘못 잡혀 있었으나, nn.Linear의 .weight.data를 통째 재할당하는
+    # 아래 매핑이 shape를 묵시적으로 덮어써 풀-FT는 작동했다. 하지만 LoRA는 base.out_features
+    # 속성을 신뢰해 lora_B를 만들므로 mismatch가 발생한다 → d*4로 정정한다.
+    our_model = GPT2Model(GPT2Config(hidden_size=d, num_hidden_layers=l, num_attention_heads=num_heads,
+                                     intermediate_size=d*4,
+                                     hidden_dropout_prob=hidden_dropout_prob,
+                                     attention_probs_dropout_prob=attention_probs_dropout_prob,
+                                     gradient_checkpointing=gradient_checkpointing)).eval()
 
     # Load word and positional embeddings.
     our_model.word_embedding.load_state_dict(gpt_model.wte.state_dict())
