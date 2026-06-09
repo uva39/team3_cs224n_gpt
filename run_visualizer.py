@@ -21,7 +21,7 @@ PathLike = Union[str, Path]
 DEFAULT_CATEGORICAL_DEFAULTS = {
     "fine_tune_mode": "not use",
     "pooling_config": "last",  # empty pooling_config means last pooling
-    "classifier_head": "Simple head",
+    "classifier_head": "simple head",
     "use_rdrop": "not use",
     "rdrop_alpha": "not use",
     "weight_decay": "not use",
@@ -63,7 +63,8 @@ def infer_classifier_head(row):
         return "MLP head"
 
     # 예전 실험 JSON에 use_simple_classifier가 없거나 비어 있는 경우 보정
-    if "simple" in filename or "simple" in path or "base" in filename or "base" in path:
+    # 주의: "base"는 GPT-2 base/model baseline을 뜻할 수 있으므로 classifier head 추론에 쓰지 않는다.
+    if "simple" in filename or "simple" in path:
         return "simple head"
     if "mlp" in filename or "mlp" in path:
         return "MLP head"
@@ -130,6 +131,17 @@ def infer_experiment_group(row: pd.Series) -> str:
     return run_group
 
 
+def strip_dataframe_columns_and_strings(df: pd.DataFrame) -> pd.DataFrame:
+    """Strip CSV header whitespace and trim string-like cells."""
+    df = df.copy()
+    df.columns = df.columns.astype(str).str.strip()
+
+    for col in df.select_dtypes(include=["object", "string"]).columns:
+        df[col] = df[col].astype("string").str.strip()
+
+    return df
+
+
 def load_runs(csv_files: Iterable[PathLike]) -> pd.DataFrame:
     """Load multiple CSV files and concatenate them."""
     csv_files = [Path(p) for p in csv_files]
@@ -141,6 +153,7 @@ def load_runs(csv_files: Iterable[PathLike]) -> pd.DataFrame:
     dfs = []
     for path in existing_files:
         temp = pd.read_csv(path)
+        temp = strip_dataframe_columns_and_strings(temp)
         temp["source_file"] = path.name
         temp["sort_metric_from_file"] = "acc" if "_acc" in path.name.lower() else "f1"
         dfs.append(temp)
@@ -185,14 +198,24 @@ def prepare_run_dataframe(
     df["grad_clip_use"] = _numeric_option_to_use(df["max_grad_norm"]) if "max_grad_norm" in df.columns else "no use"
 
     if "unuse_schedule" in df.columns:
-        s = clean_category(df["unuse_schedule"], default="false").str.lower()
+        raw = df["unuse_schedule"].astype("string").str.strip()
+        low = raw.str.lower()
+        empty = raw.isna() | raw.eq("") | low.isin(["nan", "none", "<na>"])
+
         df["scheduler_use"] = np.select(
-            [s == "true", s == "false"],
-            ["no use", "use"],
-            default="use",
+            [
+                low.eq("true"),
+                low.eq("false"),
+                empty,
+            ],
+            [
+                "no use",  # unuse_schedule=True  -> scheduler disabled
+                "use",     # unuse_schedule=False -> scheduler enabled
+                "no use",  # empty -> old run before scheduler implementation
+            ],
+            default="no use",
         )
     else:
-        # run_classifier.py 기준 기본값은 unuse_schedule=False 이므로 scheduler 사용
         df["scheduler_use"] = "no use"
 
     df["experiment_group"] = df.apply(infer_experiment_group, axis=1)
@@ -216,9 +239,11 @@ def prepare_run_dataframe(
     if best_criterion in df.columns and "dataset" in df.columns:
         valid = df.dropna(subset=[best_criterion])
         if len(valid) > 0:
-            best_indices = valid.groupby("dataset")[best_criterion].idxmax()
-            df.loc[best_indices, "model_role"] = "best model"
-            df.loc[df["is_base_model"] & df.index.isin(best_indices), "model_role"] = "base & best"
+            for dataset_name, group in valid.groupby("dataset"):
+                best_score = group[best_criterion].max()
+                best_mask = (df["dataset"] == dataset_name) & np.isclose(df[best_criterion], best_score, equal_nan=False)
+                df.loc[best_mask, "model_role"] = "best model"
+                df.loc[df["is_base_model"] & best_mask, "model_role"] = "base & best"
 
     if "best_dev_acc" in df.columns and "best_dev_f1" in df.columns:
         df["acc_f1_gap"] = df["best_dev_acc"] - df["best_dev_f1"]
@@ -295,6 +320,7 @@ def save_or_show(fig, save_path: Optional[PathLike] = None, dpi: int = 200):
         fig.savefig(save_path, dpi=dpi, bbox_inches="tight")
         print("saved:", save_path)
     plt.show()
+    plt.close(fig)
 
 
 # =========================
@@ -591,8 +617,16 @@ def plot_delta_from_base(
         else:
             raise ValueError("base_agg must be 'max' or 'mean'")
 
+        if pd.isna(base_score):
+            print(f"{dataset_name}: base model has no valid {metric}")
+            continue
+
         sub["delta_from_base"] = sub[metric] - base_score
         sub = sub.dropna(subset=["delta_from_base"])
+        if len(sub) == 0:
+            print(f"{dataset_name}: no valid delta rows")
+            continue
+
         sub = sub.sort_values("delta_from_base", ascending=False).head(top_k)
         labels = _get_label_series(sub)
 
@@ -823,22 +857,43 @@ def add_experiment_scores(df: pd.DataFrame) -> pd.DataFrame:
         return df[col].astype(str).str.lower().eq("use")
 
     # Stabilization / regularization score
-    df["stabilization_score"] = 0
-    df["stabilization_score"] += is_use_col("weight_decay_use").astype(int)
-    df["stabilization_score"] += is_use_col("grad_clip_use").astype(int)
-    df["stabilization_score"] += is_use_col("scheduler_use").astype(int)
-    df["stabilization_score"] += is_use_col("rdrop_use").astype(int)
+    # Stabilization / regularization score
+    # 0: no stabilization / regularization
+    # 1: uses regularization techniques, but no R-Drop
+    # 2: uses R-Drop
+    uses_regularization = (
+        is_use_col("weight_decay_use")
+        | is_use_col("grad_clip_use")
+        | is_use_col("scheduler_use")
+        | is_use_col("warmup_use")
+    )
+
+    uses_rdrop = is_use_col("rdrop_use")
+
+    df["stabilization_score"] = np.select(
+        [
+            uses_rdrop,
+            uses_regularization,
+        ],
+        [
+            2,
+            1,
+        ],
+        default=0,
+    )
 
     # Classifier head label
+    # prepare_run_dataframe()에서 이미 추론한 값을 보존하고, 명시적 use_simple_classifier 값이 있을 때만 보정한다.
+    if "classifier_head" not in df.columns:
+        df["classifier_head"] = df.apply(infer_classifier_head, axis=1)
+
     if "use_simple_classifier" in df.columns:
-        simple = df["use_simple_classifier"].astype(str).str.lower()
+        simple = df["use_simple_classifier"].astype("string").str.strip().str.lower()
         df["classifier_head"] = np.select(
             [simple.eq("true"), simple.eq("false")],
             ["simple head", "MLP head"],
-            default="unknown",
+            default=df["classifier_head"],
         )
-    else:
-        df["classifier_head"] = "unknown"
 
     # Architecture score
     df["architecture_score"] = 0
@@ -870,6 +925,7 @@ def plot_upgrade_score_heatmap(
     metric: str = "balanced_score",
     aggfunc: str = "max",
     exclude_mean_only_pooling: bool = True,
+    show_all_score_levels: bool = True,
     output_dir: Optional[PathLike] = None,
 ):
     """
@@ -878,6 +934,11 @@ def plot_upgrade_score_heatmap(
     Rows: stabilization_score
     Columns: architecture_score
     Cell: aggregated metric
+
+    Note:
+      total_upgrade_score is not used as an axis here.
+      A total score of 4 can appear as, for example, (stabilization=3, architecture=1)
+      or (stabilization=4, architecture=0).
     """
     df = add_experiment_scores(df)
 
@@ -887,6 +948,7 @@ def plot_upgrade_score_heatmap(
     for dataset_name, sub in df.groupby("dataset"):
         sub = sub.dropna(subset=[metric, "stabilization_score", "architecture_score"]).copy()
         if len(sub) == 0:
+            print(f"skip {dataset_name}: no valid rows for {metric}")
             continue
 
         pivot = sub.pivot_table(
@@ -896,8 +958,17 @@ def plot_upgrade_score_heatmap(
             aggfunc=aggfunc,
         ).sort_index(ascending=True)
 
+        if show_all_score_levels:
+            # stabilization: weight_decay, grad_clip, scheduler, RDrop -> 0..4
+            # architecture: MLP head, last_mean pooling -> 0..2
+            pivot = pivot.reindex(index=range(0, 5), columns=range(0, 3))
+
+        if pivot.empty or pivot.notna().sum().sum() == 0:
+            print(f"skip {dataset_name}: heatmap pivot has no valid values")
+            continue
+
         fig, ax = plt.subplots(figsize=(7, 5.5))
-        im = ax.imshow(pivot.values, aspect="auto")
+        im = ax.imshow(pivot.values, aspect="auto", origin="lower")
 
         ax.set_xticks(np.arange(len(pivot.columns)))
         ax.set_yticks(np.arange(len(pivot.index)))
@@ -911,11 +982,27 @@ def plot_upgrade_score_heatmap(
         cbar = fig.colorbar(im, ax=ax)
         cbar.set_label(metric)
 
+        # Cell annotation: metric value + sample count.
+        count_pivot = sub.pivot_table(
+            index="stabilization_score",
+            columns="architecture_score",
+            values=metric,
+            aggfunc="count",
+        )
+        if show_all_score_levels:
+            count_pivot = count_pivot.reindex(index=range(0, 5), columns=range(0, 3))
+
         for i in range(len(pivot.index)):
             for j in range(len(pivot.columns)):
                 value = pivot.values[i, j]
+                count = count_pivot.values[i, j] if count_pivot.shape == pivot.shape else np.nan
                 if pd.notna(value):
-                    ax.text(j, i, f"{value:.4f}", ha="center", va="center", fontsize=9)
+                    label = f"{value:.4f}"
+                    if pd.notna(count):
+                        label += f"\nn={int(count)}"
+                    ax.text(j, i, label, ha="center", va="center", fontsize=8)
+                else:
+                    ax.text(j, i, "-", ha="center", va="center", fontsize=9, alpha=0.5)
 
         save_path = None
         if output_dir is not None:
@@ -924,7 +1011,7 @@ def plot_upgrade_score_heatmap(
         save_or_show(fig, save_path=save_path)
         
         
-        
+
 def plot_score_vs_metric(
     df: pd.DataFrame,
     score_col: str = "stabilization_score",
@@ -995,11 +1082,79 @@ def plot_score_vs_metric(
 
         save_or_show(fig, save_path=save_path)
         
+def plot_total_upgrade_score_vs_metric(
+    df: pd.DataFrame,
+    metric: str = "balanced_score",
+    output_dir: Optional[PathLike] = None,
+):
+    """Scatter/mean/max plot for total_upgrade_score vs metric."""
+    df = add_experiment_scores(df)
+
+    for dataset_name, sub in df.groupby("dataset"):
+        sub = sub.dropna(subset=["total_upgrade_score", metric]).copy()
+        if len(sub) == 0:
+            print(f"skip {dataset_name} / total_upgrade_score: no valid rows")
+            continue
+
+        grouped = (
+            sub.groupby("total_upgrade_score")[metric]
+            .agg(["mean", "max", "std", "count"])
+            .reset_index()
+            .sort_values("total_upgrade_score")
+        )
+
+        fig, ax = plt.subplots(figsize=(7.5, 5.5))
+
+        jitter = np.random.default_rng(42).normal(0, 0.04, size=len(sub))
+        ax.scatter(
+            sub["total_upgrade_score"] + jitter,
+            sub[metric],
+            alpha=0.45,
+            s=45,
+            edgecolors="black",
+            linewidths=0.3,
+            label="individual runs",
+        )
+
+        ax.plot(
+            grouped["total_upgrade_score"],
+            grouped["mean"],
+            marker="o",
+            linewidth=2,
+            label="mean",
+        )
+
+        ax.plot(
+            grouped["total_upgrade_score"],
+            grouped["max"],
+            marker="s",
+            linewidth=2,
+            linestyle="--",
+            label="max",
+        )
+
+        for _, row in grouped.iterrows():
+            ax.text(row["total_upgrade_score"], row["max"], f" n={int(row['count'])}", fontsize=8, va="bottom")
+
+        ax.set_xlabel("total_upgrade_score")
+        ax.set_ylabel(metric)
+        ax.set_title(f"{dataset_name}: {metric} by total upgrade score")
+        ax.yaxis.set_major_formatter(PercentFormatter(1.0))
+        ax.grid(True, alpha=0.25)
+        ax.legend()
+
+        save_path = None
+        if output_dir is not None:
+            save_path = Path(output_dir) / f"{dataset_name}_total_upgrade_score_vs_{metric}.png"
+
+        save_or_show(fig, save_path=save_path)
+
+
 def run_plus_visualizations(
     df: pd.DataFrame,
     output_dir: Optional[PathLike] = None,
 ):
-        # Upgrade score visualizations
+    """Run extra upgrade-score visualizations."""
     scored_df = add_experiment_scores(df)
 
     for metric_name in ["best_dev_f1", "balanced_score"]:
@@ -1016,15 +1171,22 @@ def run_plus_visualizations(
                 metric=metric_name,
                 output_dir=output_dir,
             )
+            plot_total_upgrade_score_vs_metric(
+                scored_df,
+                metric=metric_name,
+                output_dir=output_dir,
+            )
             plot_upgrade_score_heatmap(
                 scored_df,
                 metric=metric_name,
                 aggfunc="max",
+                exclude_mean_only_pooling=False,
                 output_dir=output_dir,
             )
             plot_upgrade_score_heatmap(
                 scored_df,
                 metric=metric_name,
                 aggfunc="mean",
+                exclude_mean_only_pooling=False,
                 output_dir=output_dir,
             )
