@@ -13,6 +13,7 @@ trains and evaluates your ParaphraseGPT model and writes the required submission
 
 import argparse
 import csv
+import math
 import os
 import random
 import torch
@@ -37,6 +38,67 @@ from optimizer import AdamW
 
 TQDM_DISABLE = False
 
+class LoRALinear(nn.Module):
+  """Linear layer with a frozen base projection plus a trainable LoRA update."""
+
+  def __init__(self, base_layer, rank, alpha, dropout=0.):
+    super().__init__()
+    if rank <= 0:
+      raise ValueError(f"LoRA rank must be positive, got {rank}")
+
+    self.base_layer = base_layer
+    self.rank = rank
+    self.alpha = alpha
+    self.scaling = alpha / rank
+    self.dropout = nn.Dropout(dropout)
+    self.lora_a = nn.Linear(base_layer.in_features, rank, bias=False)
+    self.lora_b = nn.Linear(rank, base_layer.out_features, bias=False)
+
+    for param in self.base_layer.parameters():
+      param.requires_grad = False
+
+    nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
+    nn.init.zeros_(self.lora_b.weight)
+
+  def forward(self, x):
+    return self.base_layer(x) + self.lora_b(self.lora_a(self.dropout(x))) * self.scaling
+
+
+def parse_lora_targets(targets):
+  return {target.strip() for target in targets.split(',') if target.strip()}
+
+
+def apply_lora_to_gpt(gpt, rank, alpha, dropout, targets):
+  applied = []
+
+  def replace(parent, name, label):
+    layer = getattr(parent, name)
+    if not isinstance(layer, nn.Linear):
+      raise TypeError(f"LoRA target {label} is not nn.Linear")
+    setattr(parent, name, LoRALinear(layer, rank=rank, alpha=alpha, dropout=dropout))
+    applied.append(label)
+
+  for i, layer in enumerate(gpt.gpt_layers):
+    if 'query' in targets:
+      replace(layer.self_attention, 'query', f'gpt_layers.{i}.self_attention.query')
+    if 'key' in targets:
+      replace(layer.self_attention, 'key', f'gpt_layers.{i}.self_attention.key')
+    if 'value' in targets:
+      replace(layer.self_attention, 'value', f'gpt_layers.{i}.self_attention.value')
+    if 'attention_dense' in targets:
+      replace(layer, 'attention_dense', f'gpt_layers.{i}.attention_dense')
+    if 'interm_dense' in targets:
+      replace(layer, 'interm_dense', f'gpt_layers.{i}.interm_dense')
+    if 'out_dense' in targets:
+      replace(layer, 'out_dense', f'gpt_layers.{i}.out_dense')
+
+  return applied
+
+
+def parameter_count(model, trainable_only=False):
+  return sum(p.numel() for p in model.parameters() if p.requires_grad or not trainable_only)
+
+
 # Fix the random seed.
 def seed_everything(seed=11711):
   random.seed(seed)
@@ -57,9 +119,20 @@ class ParaphraseGPT(nn.Module):
     self.dropout = nn.Dropout(args.dropout)
     self.paraphrase_detection_head = nn.Linear(args.d, 2)  # Paraphrase detection has two outputs: 1 (yes) or 0 (no).
 
-    # By default, fine-tune the full model.
+    # By default, fine-tune the full model. LoRA mode freezes the base GPT-2
+    # weights and trains only LoRA adapters plus the classification head.
     for param in self.gpt.parameters():
-      param.requires_grad = True
+      param.requires_grad = not args.freeze_gpt
+
+    if args.use_lora:
+      targets = parse_lora_targets(args.lora_targets)
+      args.lora_applied_modules = apply_lora_to_gpt(
+        self.gpt,
+        rank=args.lora_rank,
+        alpha=args.lora_alpha,
+        dropout=args.lora_dropout,
+        targets=targets
+      )
 
   def forward(self, input_ids, attention_mask):
     """
@@ -99,6 +172,8 @@ def save_model(model, optimizer, args, filepath):
 def log_epoch_metrics(args, epoch, train_loss, train_acc, train_f1, dev_acc, dev_f1, best_dev_acc, is_best):
   fieldnames = [
     'dataset', 'epoch', 'seed', 'model_size', 'lr', 'batch_size', 'weight_decay', 'dropout',
+    'use_lora', 'freeze_gpt', 'lora_rank', 'lora_alpha', 'lora_dropout', 'lora_targets',
+    'resume_from', 'start_epoch', 'trainable_parameters', 'total_parameters',
     'train_loss', 'train_acc', 'train_f1', 'dev_acc', 'dev_f1',
     'best_dev_acc', 'is_best', 'checkpoint_path'
   ]
@@ -111,6 +186,16 @@ def log_epoch_metrics(args, epoch, train_loss, train_acc, train_f1, dev_acc, dev
     'batch_size': args.batch_size,
     'weight_decay': args.weight_decay,
     'dropout': args.dropout,
+    'use_lora': args.use_lora,
+    'freeze_gpt': args.freeze_gpt,
+    'lora_rank': args.lora_rank,
+    'lora_alpha': args.lora_alpha,
+    'lora_dropout': args.lora_dropout,
+    'lora_targets': args.lora_targets,
+    'resume_from': args.resume_from,
+    'start_epoch': args.start_epoch,
+    'trainable_parameters': args.trainable_parameters,
+    'total_parameters': args.total_parameters,
     'train_loss': train_loss,
     'train_acc': train_acc,
     'train_f1': train_f1,
@@ -151,17 +236,45 @@ def train(args):
   args = add_arguments(args)
   model = ParaphraseGPT(args)
   model = model.to(device)
+  args.total_parameters = parameter_count(model)
+  args.trainable_parameters = parameter_count(model, trainable_only=True)
+  print(
+    f"trainable parameters :: {args.trainable_parameters} / {args.total_parameters} "
+    f"({args.trainable_parameters / args.total_parameters:.2%})"
+  )
+  if args.use_lora:
+    print(
+      f"LoRA enabled :: rank={args.lora_rank}, alpha={args.lora_alpha}, "
+      f"dropout={args.lora_dropout}, targets={args.lora_targets}"
+    )
+    print(f"LoRA modules :: {len(args.lora_applied_modules)}")
 
   lr = args.lr
-  optimizer = AdamW(model.parameters(), lr=lr, weight_decay=args.weight_decay)
+  optimizer = AdamW((p for p in model.parameters() if p.requires_grad), lr=lr, weight_decay=args.weight_decay)
   best_dev_acc = 0
+  start_epoch = args.start_epoch if args.start_epoch is not None else 0
+
+  if args.resume_from:
+    saved = torch.load(args.resume_from, weights_only=False)
+    model.load_state_dict(saved['model'])
+    optimizer.load_state_dict(saved['optim'])
+    if args.start_epoch is None:
+      start_epoch = getattr(saved['args'], 'epochs', 0)
+    args.start_epoch = start_epoch
+    if 'system_rng' in saved:
+      random.setstate(saved['system_rng'])
+    if 'numpy_rng' in saved:
+      np.random.set_state(saved['numpy_rng'])
+    if 'torch_rng' in saved:
+      torch.random.set_rng_state(saved['torch_rng'])
+    print(f"resumed training from {args.resume_from} at epoch {start_epoch}")
 
   checkpoint_dir = os.path.dirname(args.filepath)
   if checkpoint_dir:
     os.makedirs(checkpoint_dir, exist_ok=True)
 
   # Run for the specified number of epochs.
-  for epoch in range(args.epochs):
+  for epoch in range(start_epoch, args.epochs):
     model.train()
     train_loss = 0
     num_batches = 0
@@ -258,6 +371,8 @@ def get_args():
   parser.add_argument("--checkpoint_dir", type=str, default="checkpoints")
   parser.add_argument("--experiment_name", type=str, default="base-gpt2")
   parser.add_argument("--filepath", type=str, default=None)
+  parser.add_argument("--resume_from", type=str, default=None)
+  parser.add_argument("--start_epoch", type=int, default=None)
 
   parser.add_argument("--seed", type=int, default=11711)
   parser.add_argument("--epochs", type=int, default=10)
@@ -267,11 +382,24 @@ def get_args():
   parser.add_argument("--lr", type=float, help="learning rate", default=1e-5)
   parser.add_argument("--weight_decay", type=float, default=0.)
   parser.add_argument("--dropout", type=float, default=0.)
+  parser.add_argument("--use_lora", action='store_true')
+  parser.add_argument("--freeze_gpt", action='store_true')
+  parser.add_argument("--lora_rank", type=int, default=8)
+  parser.add_argument("--lora_alpha", type=float, default=16.)
+  parser.add_argument("--lora_dropout", type=float, default=0.)
+  parser.add_argument(
+    "--lora_targets",
+    type=str,
+    default="query,value",
+    help="Comma-separated GPT-2 linear modules: query,key,value,attention_dense,interm_dense,out_dense"
+  )
   parser.add_argument("--model_size", type=str,
                       help="The model size as specified on hugging face. DO NOT use the xl model.",
                       choices=['gpt2', 'gpt2-medium', 'gpt2-large'], default='gpt2')
 
   args = parser.parse_args()
+  if args.use_lora:
+    args.freeze_gpt = True
   return args
 
 
@@ -297,9 +425,13 @@ def add_arguments(args):
 if __name__ == "__main__":
   args = get_args()
   if args.filepath is None:
+    experiment_name = args.experiment_name
+    if args.use_lora:
+      targets = args.lora_targets.replace(',', '-')
+      experiment_name = f'{experiment_name}-lora-r{args.lora_rank}-a{args.lora_alpha:g}-{targets}'
     args.filepath = os.path.join(
       args.checkpoint_dir,
-      f'{args.experiment_name}-lr{args.lr:g}-ep{args.epochs}-bs{args.batch_size}-wd{args.weight_decay:g}-drop{args.dropout:g}-quora.pt'
+      f'{experiment_name}-lr{args.lr:g}-ep{args.epochs}-bs{args.batch_size}-wd{args.weight_decay:g}-drop{args.dropout:g}-quora.pt'
     )
   seed_everything(args.seed)  # Fix the seed for reproducibility.
   train(args)

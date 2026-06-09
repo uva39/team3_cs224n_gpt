@@ -1,0 +1,3 @@
+Is "how do i start learning about artificial intelligence ?" a paraphrase of "how do you learn artificial intelligence ?"? Answer "yes" or "no": yes
+Is "how can someone learn biochemistry using first principles thinking ?" a paraphrase of "how can someone learn neuroscience using first principles thinking ?"? Answer "yes" or "no": no
+Is "[sentence1]" a paraphrase of "[sentence2]"? Answer "yes" or "no": 
